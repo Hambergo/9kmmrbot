@@ -1,0 +1,24 @@
+{
+  "name": "9kmmrbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@node-steam/id": "^1.0.0",
+    "async": "^2.6.1",
+    "dota2": "^6.2.0",
+    "mongodb": "^3.1.8",
+    "pastebin-js": "^0.6.0",
+    "steam": "^1.4.0",
+    "twitch-js": "^1.2.15"
+  },
+  "devDependencies": {
+    "eslint": "^5.8.0"
+  },
+  "author": "Hambergo",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hambergo/9kmmrbot.git"
+  },
+  "description": ""
+}
