@@ -1,0 +1,18 @@
+version: "2"
+services:
+        9kmmrbot:
+                container_name: 9kmmrbot
+                restart: always
+                build: .
+                links:
+                        - mongo
+                env_file:
+                        - vars.env
+        mongo:
+                container_name: mongo
+                restart: always
+                image: mongo
+                volumes:
+                        - ./data:/data/db
+                ports:
+                        - "27017:27017"
