@@ -1,12 +1,15 @@
 ﻿'use strict'
+
 const Dota = require('./lib/dota')
 const Twitch = require('./lib/twitch')
 const CustomError = require('./lib/CustomError')
 const mongo = require('./lib/mongo')
 const fs = require('fs')
-let twitchClient
-let dotaClient
-let mongoDb
+
+let twitchClient, dotaClient, mongoDb
+
+const self_channel = process.env.SELF_TWITCH_CHANNEL || '9kmmrbot'
+
 mongo.connect().then(c => {
 	mongoDb = c
 	twitchClient = new Twitch('9kmmrbot', 'oauth:' + process.env.TWITCH_AUTH)
@@ -19,9 +22,7 @@ mongo.connect().then(c => {
 	twitchClient.on('connected', () => {
 		return mongoDb.collection('channels').find({ name: { $exists: true, $ne: '' } }, { projection: { id: 1, name: 1, count: 1, _id: 0 } }).sort({ count: -1 }).toArray().then(results => {
 			if (results) {
-				let tempChannelsToJoin = results.map(result => result.name)
-				tempChannelsToJoin.unshift('9kmmrbot')
-				twitchClient.joinQueue(tempChannelsToJoin)
+				initialJoinTwitchChannels(twitchClient, results.map(result => result.name))
 			}
 		})
 	})
@@ -45,6 +46,13 @@ mongo.connect().then(c => {
 		})
 	})
 })
+
+/* Joins a list of Twitch channels, along with our own channel */
+const initialJoinTwitchChannels = (twitchClient, channels) => {
+	channels.unshift(self_channel)
+	console.log(`Joining ${channels.length} channels, including ${self_channel} (self).`)
+	twitchClient.joinQueue(channels)
+}
 
 const intervalGetGamesAndRps = () => {
 	return mongoDb.collection('channels').find({ name: { $exists: true, $ne: '' }, accounts: { $exists: true, $type: 'array' } }, { projection: { name: 1, accounts: 1, _id: 0 } }).toArray().then(channels => {
