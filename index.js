@@ -7,59 +7,59 @@ const mongo = require('./lib/mongo')
 const fs = require('fs')
 const twitchApi = require('./lib/twitchApi')
 
-let twitchClient, dotaClient, mongoDb
+let dotaClient, mongoDb
 
 mongo.connect().then(c => {
 	mongoDb = c
-	twitchClient = new Twitch('9kmmrbot_staging', process.env.TWITCH_AUTH)
+	initTwitchClient()
+
 	dotaClient = new Dota(process.env.STEAM_USERNAME, process.env.STEAM_PASSWORD)
 	module.exports.dotaClient = dotaClient
 
-	initTwitchClient(twitchClient)
-
 	getGamesAndRpsInterval = setInterval(intervalGetGamesAndRps, 30000)
-
-	twitchClient.on('connected', () => {
-		return mongoDb.collection('channels').find({ name: { $exists: true, $ne: '' } }, { projection: { id: 1, name: 1, count: 1, _id: 0 } }).sort({ count: -1 }).toArray().then(results => {
-			if (results) {
-				initialJoinTwitchChannels(twitchClient, results.map(result => result.name))
-			}
-		})
-	})
-
-	twitchClient.on('command', (name, room_id, channel, response) => {
-		response.then(txt => {
-			mongoDb.collection('channels').updateOne({ id: room_id }, { $inc: { count: 1 } })
-			return txt
-		}).catch(err => {
-			if (err) {
-				if (err instanceof CustomError) {
-					return err.message
-				}
-			}
-		}).then(txt => {
-			if (txt) {
-				console.log(`<${channel.substring(1)}> ${txt}`)
-				if (process.env.NODE_ENV == 'production') {
-					twitchClient.say(channel, txt)
-						.catch(e => console.log(`Tried to say "${txt}" in ${channel}, but failed: ${e}`))
-				}
-			}
-		})
-	})
 })
 
-/* Initialize some properties on the Twitch client.
+/* Initialize the Twitch client used across the application.
  * SIDE EFFECT: Adds the client to this module's exports */
-const initTwitchClient = (twitchClient) => {
+const initTwitchClient = () => {
 	twitchApi.GetChannelInfo().then((info) => {
-		twitchClient.channelId = info.id;
-		twitchClient.channelName = info.display_name;
+		let twitchClient = new Twitch(info.login, process.env.TWITCH_AUTH)
+		twitchClient.channelId = info.id
+		twitchClient.channelName = info.display_name
 
-		module.exports.twitchClient = twitchClient;
+		module.exports.twitchClient = twitchClient
 
 		let commands = [].concat(...fs.readdirSync('./lib/commands/').filter(file => file != 'Command.js').map(file => require(`./lib/commands/${file}`)))
 		twitchClient.AddCommand(commands)
+
+		twitchClient.on('connected', () => {
+			return mongoDb.collection('channels').find({ name: { $exists: true, $ne: '' } }, { projection: { id: 1, name: 1, count: 1, _id: 0 } }).sort({ count: -1 }).toArray().then(results => {
+				if (results) {
+					initialJoinTwitchChannels(twitchClient, results.map(result => result.name))
+				}
+			})
+		})
+		
+		twitchClient.on('command', (name, room_id, channel, response) => {
+			response.then(txt => {
+				mongoDb.collection('channels').updateOne({ id: room_id }, { $inc: { count: 1 } })
+				return txt
+			}).catch(err => {
+				if (err) {
+					if (err instanceof CustomError) {
+						return err.message
+					}
+				}
+			}).then(txt => {
+				if (txt) {
+					console.log(`<${channel.substring(1)}> ${txt}`)
+					if (process.env.NODE_ENV == 'production') {
+						twitchClient.say(channel, txt)
+							.catch(e => console.log(`Tried to say "${txt}" in ${channel}, but failed: ${e}`))
+					}
+				}
+			})
+		})
 	})
 }
 
