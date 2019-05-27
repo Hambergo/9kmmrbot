@@ -39,7 +39,7 @@ const initTwitchClient = () => {
 				}
 			})
 		})
-		
+
 		twitchClient.on('command', (name, room_id, channel, response) => {
 			response.then(txt => {
 				mongoDb.collection('channels').updateOne({ id: room_id }, { $inc: { count: 1 } })
@@ -109,7 +109,7 @@ const intervalGetGamesAndRps = () => {
 					})
 					return mongoDb.collection('games').insertMany(matches)
 				}).then(async () => {
-					let games = await mongoDb.collection('games').aggregate([{ $group: { _id: '$createdAt', matches: { $addToSet: '$$ROOT' } } }, { $sort: { _id: -1 } }, { $limit: 2 }]).toArray()
+					let games = await mongoDb.collection('games').aggregate([{ $match: { createdAt: { $gte: new Date(new Date() - 900000) } } }, { $group: { _id: '$createdAt', matches: { $addToSet: '$$ROOT' } } }, { $sort: { _id: -1 } }, { $limit: 2 }]).toArray()
 					if (games.length == 2) {
 						let endedGames = games[1].matches.filter(game => !game.players.some(p => p.hero_id == 0) && !games[0].matches.some(g => g.lobby_id == game.lobby_id)).map(game => ({ players: game.players.map(player => ({ account_id: player.account_id, hero_id: player.hero_id })), lobby_id: game.lobby_id, game_mode: game.game_mode, createdAt: game.createdAt }))
 						if (endedGames.length) {
