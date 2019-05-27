@@ -49,6 +49,11 @@ const initTwitchClient = () => {
 					if (err instanceof CustomError) {
 						return err.message
 					}
+					else {
+						console.log(err)
+						let temp = { message: err.message, name: err.name, createdAt: new Date() }
+						mongoDb.collection('errors').insertOne(temp)
+					}
 				}
 			}).then(txt => {
 				if (txt) {
