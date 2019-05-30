@@ -29,7 +29,9 @@ const initTwitchClient = () => {
 
 		module.exports.twitchClient = twitchClient
 
-		let commands = [].concat(...fs.readdirSync('./lib/commands/').filter(file => file != 'Command.js').map(file => require(`./lib/commands/${file}`)))
+		let commands = [].concat(...fs.readdirSync('./lib/commands/')
+			.filter(file => (file != 'Command.js') && (file != 'modCommands'))
+			.map(file => require(`./lib/commands/${file}`)))
 		twitchClient.AddCommand(commands)
 
 		twitchClient.on('connected', () => {
