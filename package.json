@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "jest"
+		"test": "jest --collectCoverage"
 	},
 	"dependencies": {
 		"@node-steam/id": "^1.0.0",
