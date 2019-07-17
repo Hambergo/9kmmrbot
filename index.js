@@ -96,6 +96,7 @@ const intervalGetGamesAndRps = () => {
 							average_mmr: match.average_mmr,
 							game_mode: match.game_mode,
 							league_id: match.league_id,
+							match_id: match.match_id.toString(),
 							lobby_id: match.lobby_id,
 							lobby_type: match.lobby_type,
 							players: match.players,
@@ -116,9 +117,9 @@ const intervalGetGamesAndRps = () => {
 				}).then(async () => {
 					let games = await mongoDb.collection('games').aggregate([{ $match: { createdAt: { $gte: new Date(new Date() - 900000) } } }, { $group: { _id: '$createdAt', matches: { $addToSet: '$$ROOT' } } }, { $sort: { _id: -1 } }, { $limit: 2 }]).toArray()
 					if (games.length == 2) {
-						let endedGames = games[1].matches.filter(game => !game.players.some(p => p.hero_id == 0) && !games[0].matches.some(g => g.lobby_id == game.lobby_id)).map(game => ({ players: game.players.map(player => ({ account_id: player.account_id, hero_id: player.hero_id })), lobby_id: game.lobby_id, game_mode: game.game_mode, createdAt: game.createdAt }))
+						let endedGames = games[1].matches.filter(game => !game.players.some(p => p.hero_id == 0) && !games[0].matches.some(g => g.lobby_id == game.lobby_id)).map(game => ({ players: game.players.map(player => ({ account_id: player.account_id, hero_id: player.hero_id })), lobby_id: game.lobby_id, game_mode: game.game_mode, createdAt: game.createdAt, match_id: game.match_id.toString() }))
 						if (endedGames.length) {
-							mongoDb.collection('last games').bulkWrite(endedGames.map(game => ({ updateOne: { 'filter': { lobby_id: game.lobby_id }, 'update': { players: game.players, createdAt: game.createdAt, game_mode: game.game_mode, lobby_id: game.lobby_id }, 'upsert': true } })))
+							mongoDb.collection('last games').bulkWrite(endedGames.map(game => ({ updateOne: { 'filter': { lobby_id: game.lobby_id }, 'update': { players: game.players, createdAt: game.createdAt, game_mode: game.game_mode, lobby_id: game.lobby_id, match_id: game.match_id.toString() }, 'upsert': true } })))
 						}
 					}
 				}).catch(() => { })
