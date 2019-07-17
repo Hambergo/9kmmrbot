@@ -120,9 +120,6 @@ const intervalGetGamesAndRps = () => {
 						if (endedGames.length) {
 							mongoDb.collection('last games').bulkWrite(endedGames.map(game => ({ updateOne: { 'filter': { lobby_id: game.lobby_id }, 'update': { players: game.players, createdAt: game.createdAt, game_mode: game.game_mode, lobby_id: game.lobby_id }, 'upsert': true } })))
 						}
-						if (!games[0].matches.some(game => game.players && game.players.some(player => player.account_id == 107018903)) && games[1].matches.some(game => game.players && game.players.some(player => player.account_id == 107018903 && player.hero_id == 27))) {
-							await mongoDb.collection('fun').updateOne({ name: 'Last Shaman Game' }, { $set: { date: new Date(games[0]._id) } })
-						}
 					}
 				}).catch(() => { })
 			}).catch(() => { })
