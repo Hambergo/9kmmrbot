@@ -5,10 +5,10 @@
   "dependencies": {
     "@node-steam/id": "^1.0.0",
     "async": "^2.6.1",
-    "dota2": "^6.2.0",
+    "dota2": "^7.0.3",
     "mongodb": "^3.1.8",
     "pastebin-js": "^0.6.0",
-    "steam": "^1.4.0",
+    "steam": "^1.4.1",
     "twitch-js": "^1.2.15"
   },
   "devDependencies": {
