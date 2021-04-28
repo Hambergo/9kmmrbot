@@ -32,7 +32,7 @@
     "dota2": "^7.0.3",
     "long": "^4.0.0",
     "mongodb": "^3.6.5",
-    "protobufjs": "^4.1",
+    "protobufjs": "^5.0",
     "source-map-support": "^0.5.19",
     "steam": "^1.4.1",
     "steam-resources": "github:seishun/node-steam-resources",
