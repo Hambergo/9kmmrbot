@@ -1,0 +1,29 @@
+version: "3.4"
+
+services:
+  new9kmmrbot:
+    image: new9kmmrbot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file: .env
+    environment:
+      NODE_ENV: development
+    ports:
+      - 9229:9229
+    restart: unless-stopped
+    command: ["node", "--trace-warnings", "--inspect=0.0.0.0:9229", "-r", "source-map-support/register",  "dist/index.js"]
+    volumes:
+      - 9kmmrbot:/usr/src/app/volumes
+  mongodb:
+    image: "docker.io/bitnami/mongodb:4.4-debian-10"
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - "mongodb_data:/bitnami/mongodb"
+      - ./init_mongo.js:/docker-entrypoint-initdb.d/init_mongo.js
+
+volumes:
+  mongodb_data:
+  9kmmrbot:
