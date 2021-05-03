@@ -42,6 +42,7 @@ export default async function score(channel: string, tags: ChatUserstate, comman
   const gamesQuery = await db.collection('gameHistory').find({
     match_id: { $ne: game.match_id },
     'players.account_id': { $in: channelQuery.accounts },
+    'players.hero_id': { $ne: 0 },
     game_mode: { $in: [1, 2, 3, 4, 5, 8, 12, 13, 14, 16, 17, 18, 22] },
     createdAt: { $gte: streamStart },
   }, { sort: { createdAt: -1 } }).toArray();
