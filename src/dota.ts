@@ -275,6 +275,8 @@ export default class Dota {
     });
     this.dota2.on('hellotimeout', () => {
       // this.dota2.Logger.debug = () => {};
+      this.dota2.exit();
+      setTimeout(this.dota2.launch(), 30000);
       console.log('hello time out!');
       // this.steamClient.disconnect();
       // setTimeout(this.dota2.launch, 10000);
