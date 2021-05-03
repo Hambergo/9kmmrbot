@@ -394,7 +394,7 @@ export default class Dota {
           resolve(card);
         });
       }
-    }), 1000, 'Error getting medal');
+    }), 500, 'Error getting medal');
   }
 
   public getCards(accounts: number[], lobbyId: Long) {
