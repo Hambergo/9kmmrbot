@@ -343,7 +343,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
         twitch.join(args[1]);
-        db.collection('channels').findOneAndUpdate({ id: Number(user.id) }, { $set: { name: args[1] } }, { upsert: true });
+        db.collection('channels').updateOne({ id: Number(user.id) }, { $set: { name: args[1] } }, { upsert: true });
         return `Joining ${args[1]}`;
       }
       return '';
@@ -352,7 +352,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
         twitch.join(args[1]);
-        db.collection('channels').findOneAndUpdate({ id: Number(user.id) }, { $unset: { name: '' } }, { upsert: true });
+        db.collection('channels').updateOne({ id: Number(user.id) }, { $unset: { name: '' } }, { upsert: true });
         return `Leaving ${args[1]}`;
       }
       break;
