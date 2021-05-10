@@ -1,10 +1,7 @@
 import { ChatUserstate } from 'tmi.js';
-import { request } from 'https';
-import { Long } from 'mongodb';
 import CustomError from '../customError';
 import Dota from '../dota';
 import Mongo from '../mongo';
-import Twitch from '../twitch';
 
 const mongo = Mongo.getInstance();
 export default async function heroChallenge(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
