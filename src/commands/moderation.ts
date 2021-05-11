@@ -10,6 +10,8 @@ const mongo = Mongo.getInstance();
 const twitch = Twitch.getInstance();
 const command = Command.getInstance();
 
+const getTime = (date: Date) => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()} ${date.getUTCHours()}:${date.getUTCMinutes() < 10 ? '0' : ''}${date.getUTCMinutes()}:${date.getUTCSeconds() < 10 ? '0' : ''}${date.getUTCSeconds()}`;
+
 const returnAccountId = (str: string) => {
   try {
     return new ID(str).getAccountID();
@@ -149,21 +151,41 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       }
       break;
     case 'hc':
-      if (args[1] === 'hero') {
+      if (args[1] === 'addhero') {
         const heroName = args.slice(2).join(' ');
         const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
+        const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
+        if (channelQuery.hc.find((hc: { hero_id: number; }) => hc.hero_id === heroQuery.id)) return `Hero ${heroQuery.localized_name} already exists. In order to change starting time, use !9kmmrbot hc settime `;
         const start = new Date();
-        await db.collection('channels').updateOne({ id: roomId }, { $set: { 'hc.hero_id': heroQuery.id, 'hc.time': start } });
-        return `Updated hero challenge hero to ${heroQuery.localized_name} and start time to ${start.toUTCString()}`;
-      } if (args[1] === 'time') {
+        await db.collection('channels').updateOne({ id: roomId }, { $push: { hc: { hero_id: heroQuery.id, date: start } } });
+        return `Added ${heroQuery.localized_name} to hero challenge list and start time to ${getTime(start)}`;
+      }
+      if (args[1] === 'delhero') {
+        const heroName = args.slice(2).join(' ');
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
+        await db.collection('channels').updateOne({ id: roomId }, { $pull: { hc: { hero_id: heroQuery.id } } });
+        return `Removed ${heroQuery.localized_name} from hero challenge list`;
+      } if (args[1] === 'settime') {
+        if (!args[2]) return 'Wrong syntax: !9kmmrbot hc settime hero name | time';
+        const split = args.slice(2).join(' ').split('|');
+        const heroName = split[0].trim();
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         let start = new Date();
-        if (args.length !== 2) {
-          start = new Date(args.slice(2).join(' '));
+        if (split.length > 1) {
+          start = new Date(split[1].trim());
           if (start.toString() === 'Invalid Date') start = new Date();
         }
-        await db.collection('channels').updateOne({ id: roomId }, { $set: { 'hc.time': start } });
-        return `Updated hero challenge start time to ${start.toUTCString()}`;
+        await db.collection('channels').updateOne({ id: roomId, 'hc.hero_id': heroQuery.id }, { $set: { 'hc.$.date': start } });
+        return `Updated ${heroQuery.localized_name} start time to ${getTime(start)}`;
+      }
+      if (args[1] === 'list') {
+        const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
+        if (!channelQuery?.hc?.length) throw new CustomError('Hero challenge empty');
+        const heroesQuery = await db.collection('heroes').find({ id: { $in: channelQuery.hc.map((tempHero: { hero_id: number; }) => tempHero.hero_id) } }).toArray();
+        return channelQuery.hc.map((hc: { hero_id: number; date: Date; }) => `${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === hc.hero_id), 0, 0)} since ${getTime(hc.date)}`).join(', ');
       }
       return '';
     case 'toggleself':
