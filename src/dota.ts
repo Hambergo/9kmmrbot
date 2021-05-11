@@ -1,4 +1,3 @@
-/* eslint-disable camelcase, max-len */
 import querystring from 'querystring';
 import fs from 'fs';
 import { get } from 'http';
@@ -93,7 +92,6 @@ export default class Dota {
       let count = 0;
       const start_game = 90;
       const callbackSpecificGames = (data: { specific_games: boolean; game_list: any[]; start_game: number; }) => {
-        // console.log(new Date(), data.specific_games, count, data.start_game);
         if (data.specific_games) {
           games = games.concat(data.game_list.filter((game) => game.players && game.players.length > 0));
           count -= 1;
@@ -104,7 +102,6 @@ export default class Dota {
         }
       };
       const callbackNotSpecificGames = (data: { specific_games: boolean; game_list: any[]; league_id: number; start_game: number; }) => {
-        // console.log(new Date(), data.specific_games, count, data.start_game);
         if (!data.specific_games) {
           games = games.concat(data.game_list.filter((game: { players: string | any[]; }) => game.players?.length > 0));
           if (data.league_id === 0 && start_game === data.start_game) {
