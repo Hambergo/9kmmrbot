@@ -190,10 +190,10 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       return '';
     case 'toggleself':
       await db.collection('channels').updateOne({ id: roomId }, { $set: { self: !channelDocument.self } });
-      return 'Toggled showing streamer as a notable player';
+      return `Toggled showing streamer as a notable player ${!channelDocument.self ? 'on' : 'off'}`;
     case 'toggleemotes':
       await db.collection('channels').updateOne({ id: roomId }, { $set: { emotes: !channelDocument.emotes } });
-      return 'Toggled showing emotes instead of hero names';
+      return `Toggled showing emotes instead of hero names ${!channelDocument.emotes ? 'on' : 'off'}`;
     case 'delay':
       if (args.length === 1) return `Showing games ${channelDocument.delay?.enabled ? `in ${channelDocument.delay.seconds} seconds delay` || 30 : 'live'}`;
       if (args[1] === 'on') {
@@ -291,7 +291,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
             let found = true;
             const heroEmotes: string[] = [];
             for (let j = 0; j < heroesQuery[i].emotes.length && found; j += 1) {
-              const foundEmote = emotesets[heroesQuery[i].emotesets[j]].find((emote: {
+              const foundEmote = emotesets[heroesQuery[i].emotesets[j]]?.find((emote: {
                 id: number;
               }) => emote.id === heroesQuery[i].emotes[j]);
               if (foundEmote) {
