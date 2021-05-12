@@ -75,7 +75,7 @@ export default class Twitch {
           }
           console.log(`<${channel.substring(1)}> ${response}`);
           const db = await mongo.db;
-          db.collection('channels').updateOne({ id: tags['room-id'] }, { $inc: { count: 1 } });
+          db.collection('channels').updateOne({ id: Number(tags['room-id']) }, { $inc: { count: 1 } });
         }
       }
     });
