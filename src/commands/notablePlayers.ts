@@ -70,13 +70,13 @@ const parseNotablePlayers = async (game: {
   }
   return `${game.weekend_tourney_skill_level ? `Battle cup T${game.weekend_tourney_skill_level} ${['', 'Finals', 'Semi Finals', 'Quarter Finals'][game.weekend_tourney_bracket_round as number]}` : gameMode}${mmr}: ${nps.length ? nps.join(', ') : 'No other notable player found'}`;
 };
-export default async function notablePlayers(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
+async function getNotablePlayers(tags: ChatUserstate, debug: boolean = false) {
   const db = await mongo.db;
   const roomId = Number(tags['room-id']);
   const userId = Number(tags['user-id']);
-  const channels = await db.collection('channels').find({ id: { $in: [userId, roomId] } }).toArray();
-  const channelDocument = channels.find((document) => document.id === roomId);
-  const userDocument = channels.find((document) => document.id === userId);
+  const channelQuery = await db.collection('channels').find({ id: { $in: [userId, roomId] } }).toArray();
+  const channelDocument = channelQuery.find((document) => document.id === roomId);
+  const userDocument = channelQuery.find((document) => document.id === userId);
   try {
     if (debug && roomId !== userId && !userDocument?.globalMod && (!(channelDocument?.mods?.some((mod: Number) => mod === userId)))) return '';
   } catch (err) {
@@ -85,6 +85,9 @@ export default async function notablePlayers(channel: string, tags: ChatUserstat
   const game = await Dota.findGame(channelDocument, true);
   return parseNotablePlayers(game, channelDocument, debug);
 }
+export default async function notablePlayers(channel: string, tags: ChatUserstate, commandName: string, ...args: string[]): Promise<string> {
+  return getNotablePlayers(tags);
+}
 export async function notablePlayersDebug(channel: string, tags: ChatUserstate, commandName: string, ...args: string[]): Promise<string> {
-  return notablePlayers(channel, tags, commandName, true, ...args);
+  return getNotablePlayers(tags, true);
 }
