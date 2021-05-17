@@ -214,7 +214,7 @@ export default class Dota {
             // if (party) {
             //   rp.party = generateObject(party);
             // }
-            if (rp.WatchableGameID === 0 || rp.WatchableGameID === '0') {
+            if (rp.WatchableGameID === '0') {
               delete rp.WatchableGameID;
             } else if (rp.WatchableGameID) rp.WatchableGameID = Long.fromString(rp.WatchableGameID);
             rp.createdAt = now;
