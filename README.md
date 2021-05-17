@@ -14,7 +14,7 @@ how the containers are created. Simply execute the following command from within
 to start the bot:
 
 ```
-docker-compose build && docker-compose up
+COMPOSE_DOCKER_CLI_BUILD=1 docker-compose up --build
 ```
 
 You might need to `sudo` the above command, or add your user to the appropriate `docker` user group. Refer
