@@ -15,7 +15,7 @@ const Dota2 = require('dota2');
 const mongo = Mongo.getInstance();
 const twitch = Twitch.getInstance();
 
-const wait = (time: any) => new Promise((resolve) => setTimeout(resolve, time || 0));
+const wait = (time: number) => new Promise((resolve) => setTimeout(resolve, time || 0));
 const retry = (cont: number, fn: () => Promise<any>, delay: number): Promise<any> => fn().catch((err) => (cont > 0 ? wait(delay).then(() => retry(cont - 1, fn, delay)) : Promise.reject(err)));
 
 const promiseTimeout = (promise: Promise<any>, ms: number, reason: string) => new Promise((resolve, reject) => {
@@ -42,7 +42,7 @@ type steamUserDetails = {
 }
 
 const generateRP = (txt: string) => {
-  const temp: any = {};
+  const temp: {[name: string]: any} = {};
   // eslint-disable-next-line no-control-regex
   txt.replace(/(?:^\x00([^\x00]*)\x00(.*)\x08$|\x01([^\x00]*)\x00([^\x00]*)\x00)/gm, (_match, ...args) => {
     if (args[0]) {
@@ -166,7 +166,7 @@ export default class Dota {
         if (game) {
           let updated = false;
           for (let j = 0; j < game.players.length; j += 1) {
-            const p = gamesHistoryQuery[i].players.find((player: { account_id: any; }) => player.account_id === game.players[j].account_id);
+            const p = gamesHistoryQuery[i].players.find((player: { account_id: number; }) => player.account_id === game.players[j].account_id);
             if (p !== undefined && p.hero_id === 0) {
               updated = true;
               p.hero_id = game.players[j].hero_id;
@@ -178,7 +178,7 @@ export default class Dota {
         }
       }
       if (updateGamesHistoryArray.length) db.collection('gameHistory').bulkWrite(updateGamesHistoryArray);
-      const filteredGames = games.filter((game: { match_id: Long; }) => !gamesHistoryQuery.some((historyGame) => game.match_id.getHighBits() === historyGame.match_id.getHighBits() && game.match_id.getLowBits() === historyGame.match_id.getLowBits()));
+      const filteredGames = games.filter((game: { match_id: Long; }) => !gamesHistoryQuery.some((historyGame: { match_id: Long; }) => game.match_id.equals(historyGame.match_id)));
       if (filteredGames.length) db.collection('gameHistory').insertMany(filteredGames);
     });
   }
