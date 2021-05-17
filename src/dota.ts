@@ -88,6 +88,7 @@ export default class Dota {
   private dota2
 
   private getGames(lobbyIds: Long[], time: Date) {
+    if (!this.dota2._gcReady || !this.steamClient.loggedOn) return;
     new Promise((resolve, reject) => {
       if (!this.dota2._gcReady || !this.steamClient.loggedOn) return;
       let games: any = [];
@@ -184,6 +185,7 @@ export default class Dota {
   }
 
   private getRichPresence(accounts: string[]) {
+    if (!this.dota2._gcReady || !this.steamClient.loggedOn) return;
     this.steamRichPresence.once('info', async (data: { rich_presence: string | any[]; }) => {
       const rps = [];
       const now = new Date();
