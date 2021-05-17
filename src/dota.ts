@@ -163,7 +163,7 @@ export default class Dota {
         });
       const updateGamesHistoryArray = [];
       for (let i = 0; i < gamesHistoryQuery.length; i += 1) {
-        const game = games.find((g: { match_id: Long; }) => g.match_id.getHighBits() === gamesHistoryQuery[i].match_id.getHighBits() && g.match_id.getLowBits() === gamesHistoryQuery[i].match_id.getLowBits());
+        const game = games.find((g: { match_id: Long; }) => g.match_id.equals(gamesHistoryQuery[i].match_id));
         if (game) {
           let updated = false;
           for (let j = 0; j < game.players.length; j += 1) {
