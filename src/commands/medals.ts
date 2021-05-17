@@ -12,7 +12,7 @@ const twitch = Twitch.getInstance();
 export default async function medal(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
   const db = await mongo.db;
   const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
-  if (!channelQuery?.accounts?.length) throw new CustomError(`No accounts connected to ${channelQuery.name}`);
+  if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
   let lobbyId: Long;
   try {
     lobbyId = (await Dota.findGame(channelQuery)).lobby_id;
@@ -36,7 +36,7 @@ export default async function medal(channel: string, tags: ChatUserstate, comman
 export async function gameMedals(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
   const db = await mongo.db;
   const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
-  if (!channelQuery?.accounts?.length) throw new CustomError(`No accounts connected to ${channelQuery?.name ?? 'Unknown'}`);
+  if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
   const game = await Dota.findGame(channelQuery, true);
   const cards = await dota.getCards(game.players.map((player: { account_id: number; }) => player.account_id), game.lobby_id);
   const medalQuery = await db.collection('medals').find({ rank_tier: { $in: cards.map((card) => card.rank_tier) } }).toArray();

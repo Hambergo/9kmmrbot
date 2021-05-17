@@ -15,6 +15,7 @@ export default async function score(channel: string, tags: ChatUserstate, comman
   if (!stream || stream.type !== 'live' || !stream.started_at) {
     throw new CustomError('Stream isn\'t live');
   }
+  if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
   let streamStart = new Date(stream.started_at);
   if (videos && videos.length) {
     for (let i = 0; i < videos.length; i += 1) {

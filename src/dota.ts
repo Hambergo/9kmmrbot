@@ -324,7 +324,7 @@ export default class Dota {
     name: string
   }, allowSpectating: boolean = false) {
     const db = await mongo.db;
-    if (!channelQuery?.accounts?.length) throw new CustomError(`No accounts connected to ${channelQuery.name}`);
+    if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
     const seconds: number = channelQuery.delay?.enabled ? channelQuery.delay.seconds || 30 : 0;
     const [gamesQuery, rpsQuery] = await Promise.all([db.collection('games').aggregate([
       { $match: { createdAt: { $gte: new Date(new Date().getTime() - 900000) } } },

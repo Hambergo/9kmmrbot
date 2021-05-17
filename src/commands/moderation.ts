@@ -46,7 +46,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (channelDocument?.accounts?.length) {
         return `Accounts linked to ${channel.substring(1)}: ${channelDocument?.accounts.join(', ')}`;
       }
-      throw new CustomError(`No accounts connected to ${channel.substring(1)}`);
+      throw new CustomError('No accounts connected');
     case 'addacc':
       if (args.length === 2) {
         const id = returnAccountId(args[1]);
