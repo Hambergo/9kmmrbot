@@ -7,11 +7,13 @@ import { Long } from 'mongodb';
 import DotaLong from 'long';
 import Mongo from './mongo';
 import CustomError from './customError';
+import Twitch from './twitch';
 
 const Steam = require('steam');
 const Dota2 = require('dota2');
 
 const mongo = Mongo.getInstance();
+const twitch = Twitch.getInstance();
 
 const wait = (time: any) => new Promise((resolve) => setTimeout(resolve, time || 0));
 const retry = (cont: number, fn: () => Promise<any>, delay: number): Promise<any> => fn().catch((err) => (cont > 0 ? wait(delay).then(() => retry(cont - 1, fn, delay)) : Promise.reject(err)));
@@ -381,7 +383,15 @@ export default class Dota {
   }
 
   public static getHeroName(channelQuery: { emotes: any; }, heroesQuery: any, lobby_type: number, index: number) {
-    let heroName = channelQuery.emotes ? heroesQuery[Math.trunc(Math.random() * heroesQuery.length)].localized_name : heroesQuery.find((name: { custom: any; }) => (name.custom ?? false) === false).localized_name || 'Unknown';
+    const heroNames = heroesQuery.filter((th: { emotesets: string | any[]; emotes: number[]; }) => {
+      for (let j = 0; j < th.emotesets?.length; j += 1) {
+        if (!twitch.emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id === th.emotes[j])) {
+          return false;
+        }
+      }
+      return true;
+    });
+    let heroName = channelQuery.emotes ? heroNames[Math.trunc(Math.random() * heroNames.length)].localized_name : heroNames.find((name: { custom: any; }) => (name.custom ?? false) === false).localized_name || 'Unknown';
     if (lobby_type !== 1 && (heroName === 'Unknown' || heroName === 'Not Picked')) heroName = 'Blue,Teal,Purple,Yellow,Orange,Pink,Gray,Light Blue,Green,Brown'.split(',')[index];
     return heroName;
   }

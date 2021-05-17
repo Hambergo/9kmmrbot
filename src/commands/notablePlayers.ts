@@ -54,15 +54,7 @@ const parseNotablePlayers = async (game: {
   const nps = [];
   for (let i = 0; i < game.players.length; i += 1) {
     const np = notablePlayersQuery.find((tnp) => tnp.id === game.players[i].account_id);
-    const heroNames = heroesQuery.filter((th) => {
-      if (th.id !== game.players[i].hero_id) return false;
-      for (let j = 0; j < th.emotesets?.length; j += 1) {
-        if (!emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id === th.emotes[j])) {
-          return false;
-        }
-      }
-      return true;
-    });
+    const heroNames = heroesQuery.filter((hero) => hero.id === game.players[i].hero_id);
     if (debug || (np && (channelQuery.self || !channelQuery.accounts.includes(game.players[i].account_id)))) {
       const heroName = Dota.getHeroName(channelQuery, heroNames, game.lobby_type, i);
       nps.push(`${np?.name || ''} (${debug ? `${game.players[i].account_id}, ` : ''}${heroName})`);
