@@ -71,7 +71,7 @@ export default class Twitch {
       } finally {
         if (response) {
           if (process.env.NODE_ENV === 'production') {
-            this.say(channel, response);
+            this.say(channel, response).catch((err) => {});
           }
           console.log(`<${channel.substring(1)}> ${response}`);
           const db = await mongo.db;
@@ -95,7 +95,7 @@ export default class Twitch {
   }
 
   public say(channel: string, message: string) {
-    this.client.say(channel, message);
+    return this.client.say(channel, message);
   }
 
   public exit(): Promise<boolean> {
