@@ -82,6 +82,6 @@ const medals = [{ rank_tier: 0, name: 'Uncalibrated' }, { rank_tier: 11, name: '
   { rank_tier: 71, name: 'Divine☆1' }, { rank_tier: 72, name: 'Divine☆2' }, { rank_tier: 73, name: 'Divine☆3' }, { rank_tier: 74, name: 'Divine☆4' },
   { rank_tier: 75, name: 'Divine☆5' }, { rank_tier: 76, name: 'Divine☆6' }, { rank_tier: 77, name: 'Divine☆7' }, { rank_tier: 80, name: 'Immortal' }];
 db.medals.createIndex({ rank_tier: 1 });
-db.insertMany(medals);
+db.medals.insertMany(medals);
 db.notablePlayers.createIndex({ id: 1, channel: 1, enabled: 1 });
 db.rps.createIndex({ createdAt: -1 }, { expireAfterSeconds: 3600 });
