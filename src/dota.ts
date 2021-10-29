@@ -393,6 +393,7 @@ export default class Dota {
       }
       return true;
     });
+    if (!heroNames.length) return 'Unknown';
     let heroName = channelQuery.emotes ? heroNames[Math.trunc(Math.random() * heroNames.length)].localized_name : heroNames.find((name: { custom: any; }) => (name.custom ?? false) === false).localized_name || 'Unknown';
     if (lobby_type !== 1 && (heroName === 'Unknown' || heroName === 'Not Picked')) heroName = 'Blue,Teal,Purple,Yellow,Orange,Pink,Gray,Light Blue,Green,Brown'.split(',')[index];
     return heroName;
