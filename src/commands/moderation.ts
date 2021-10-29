@@ -364,7 +364,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (!userDocument?.globalMod) return '';
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
-        twitch.join(args[1]);
+        twitch.join(args[1]).catch(() => { });
         db.collection('channels').updateOne({ id: Number(user.id) }, { $set: { name: args[1] } }, { upsert: true });
         return `Joining ${args[1]}`;
       }
@@ -373,17 +373,17 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (!userDocument?.globalMod) return '';
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
-        twitch.join(args[1]);
+        twitch.join(args[1]).catch(() => { });
         db.collection('channels').updateOne({ id: Number(user.id) }, { $unset: { name: '' } }, { upsert: true });
         return `Leaving ${args[1]}`;
       }
       break;
-    default:
-      return '';
     case 'refresh':
       if (!userDocument?.globalMod) return '';
       command.refreshCommands();
       return 'Refreshed commands';
+    default:
+      return '';
   }
   return '';
 }
