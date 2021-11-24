@@ -22,10 +22,11 @@ export default async function medal(channel: string, tags: ChatUserstate, comman
   const cards = await dota.getCards(channelQuery.accounts, lobbyId);
   const bestCard = cards.reduce((best, card) => {
     if (!card) return best;
-    if (card.rank_tier > best.rank_tier
-      || (card.rank_tier === best.rank_tier
-        && card.leaderboard_rank > 0
-        && card.leaderboard_rank < best.leaderboard_rank)) return card;
+    if (card.rank_tier > best.rank_tier) return card;
+    if (card.rank_tier === best.rank_tier) {
+      if (best.leaderboard_rank === 0) return card;
+      if (card.leaderboard_rank > 0 && card.leaderboard_rank < best.leaderboard_rank) return card;
+    }
     return best;
   }, { rank_tier: -10, leaderboard_rank: 0 });
   const medalQuery = await db.collection('medals').findOne({ rank_tier: bestCard.rank_tier });
