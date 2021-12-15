@@ -48,7 +48,7 @@ const parseNotablePlayers = async (game: {
     }).sort({ channel: -1 }).toArray(),
     db.collection('gameModes').findOne({ id: game.game_mode }),
   ]);
-  const gameMode = gameModesQuery.name || 'Unknown';
+  const gameMode = gameModesQuery?.name || 'Unknown';
   const mmr = game.average_mmr ? ` [${game.average_mmr} avg MMR]` : '';
   const { emotesets } = twitch;
   const nps = [];
