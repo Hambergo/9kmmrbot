@@ -340,7 +340,7 @@ export default class Dota {
       },
       { $unwind: '$matches' }, { $replaceRoot: { newRoot: '$matches' } },
       { $match: { 'players.account_id': { $in: channelQuery.accounts } } },
-    ]).toArray(),
+    ], { allowDiskUse: true }).toArray(),
     db.collection('rps').aggregate([
       { $match: { createdAt: { $gte: new Date(new Date().getTime() - 900000) } } },
       { $group: { _id: '$createdAt' } }, { $sort: { _id: -1 } }, { $skip: seconds / 30 }, { $limit: 1 },
@@ -361,7 +361,7 @@ export default class Dota {
           },
         },
       },
-    ]).toArray(),
+    ], { allowDiskUse: true }).toArray(),
     ]);
     if (gamesQuery.length === 0 || gamesQuery[0] === undefined) {
       if (rpsQuery.length === 0 || !allowSpectating) throw new CustomError("Game wasn't found");
@@ -369,11 +369,15 @@ export default class Dota {
         const match = rpsQuery[0].WatchableGameID ? { lobby_id: rpsQuery[0].WatchableGameID } : { server_steam_id: rpsQuery[0].watching_server };
         const spectatedGames = await db.collection('games').aggregate([
           { $match: { createdAt: { $gte: new Date(new Date().getTime() - 900000) } } },
-          { $group: { _id: '$createdAt', matches: { $addToSet: '$$ROOT' } } },
-          { $sort: { _id: -1 } }, { $skip: seconds / 30 }, { $limit: 1 },
+          { $group: { _id: '$createdAt' } }, { $sort: { _id: -1 } }, { $skip: seconds / 30 }, { $limit: 1 },
+          {
+            $lookup: {
+              from: 'games', localField: '_id', foreignField: 'createdAt', as: 'matches',
+            },
+          },
           { $unwind: '$matches' }, { $replaceRoot: { newRoot: '$matches' } },
           { $match: match },
-        ]).toArray();
+        ], { allowDiskUse: true }).toArray();
         if (spectatedGames.length) {
           if (spectatedGames[0] === undefined) throw new CustomError('Game wasn\'t found');
           return spectatedGames[0];
