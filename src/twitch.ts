@@ -55,8 +55,35 @@ export default class Twitch {
       this.client.getOptions().channels = channels;
       this.client.connect();
     });
-    this.client.on('emotesets', (_, emotesets) => {
-      this.emotesets = emotesets;
+    this.client.on('globaluserstate' as any, async (tags: { 'emote-sets': string }) => {
+      let needToUpdate = false;
+      const emotesets = tags['emote-sets'].split(',');
+      const oldKeys = Object.keys(this.emotesets).sort();
+      if (oldKeys.length !== emotesets.length) needToUpdate = true;
+      for (let i = 0; i < oldKeys.length && !needToUpdate; i += 1) {
+        if (oldKeys[i] !== emotesets[i]) {
+          console.log('difference', oldKeys[i], emotesets[i]);
+          needToUpdate = true;
+        }
+      }
+      if (!needToUpdate) return;
+      console.log('updating emotesets...', oldKeys, emotesets);
+      const helixEmotes: { set: any, name: any, id: any }[] = [];
+      const promise = async () => {
+        await Twitch.api('chat/emotes/set', { emote_set_id: emotesets.splice(0, 25) })
+          .then((data: any) => helixEmotes.push(...data?.data?.map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id }))));
+        if (emotesets.length) {
+          await promise();
+        }
+      };
+      if (emotesets.length) {
+        await promise();
+      }
+      this.emotesets = {};
+      for (let i = 0; i < helixEmotes?.length; i += 1) {
+        if (!this.emotesets[helixEmotes[i].set]) this.emotesets[helixEmotes[i].set] = [];
+        this.emotesets[helixEmotes[i].set].push({ code: helixEmotes[i].name, id: helixEmotes[i].id });
+      }
     });
     this.client.on('message', async (channel: string, tags: ChatUserstate, message: string, self: boolean) => {
       if (self) return;

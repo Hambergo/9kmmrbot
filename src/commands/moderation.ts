@@ -32,7 +32,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
     case 'id':
       if (args.length > 1) {
         const heroName = args.slice(1).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         const game = await Dota.findGame(channelDocument, true);
         const player = game.players.find((tempPlayer: { hero_id: any; }) => tempPlayer.hero_id === heroQuery.id);
@@ -153,7 +153,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
     case 'hc':
       if (args[1] === 'addhero') {
         const heroName = args.slice(2).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
         if (channelQuery.hc.find((hc: { hero_id: number; }) => hc.hero_id === heroQuery.id)) return `Hero ${heroQuery.localized_name} already exists. In order to change starting time, use !9kmmrbot hc settime `;
@@ -163,7 +163,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       }
       if (args[1] === 'delhero') {
         const heroName = args.slice(2).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         await db.collection('channels').updateOne({ id: roomId }, { $pull: { hc: { hero_id: heroQuery.id } } });
         return `Removed ${heroQuery.localized_name} from hero challenge list`;
@@ -171,7 +171,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
         if (!args[2]) return 'Wrong syntax: !9kmmrbot hc settime hero name | time';
         const split = args.slice(2).join(' ').split('|');
         const heroName = split[0].trim();
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: heroName, $options: 'i' } });
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         let start = new Date();
         if (split.length > 1) {
@@ -216,34 +216,28 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (!userDocument?.globalMod) return '';
       if (args.length > 1) {
         const split = args.slice(1).join(' ').split(',').map((arg) => arg.trim());
-        if (split.length !== 2) throw new CustomError('Wrong syntax: !9kmmrbot emotes add emotes, hero');
-        const emotesList = split[0].split(' ');
-        const { emotesets } = twitch;
-        const emotesetsKeys = Object.keys(emotesets);
+        if (split.length !== 3) throw new CustomError('Wrong syntax: !9kmmrbot addemotes channel, emotes, hero');
+        const emotesList = split[1].split(' ');
+        const { data: [user] } = await Twitch.api('users', { login: split[0] });
+        const helixEmotes = await Twitch.api('chat/emotes', { broadcaster_id: user.id })
+          .then((data) => data.data.filter((emote: { emote_type: string; }) => emote.emote_type === 'subscriptions')
+            .map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id })));
         const resultEmotes = [];
         const resultEmoteSets = [];
         for (let i = 0; i < emotesList.length; i += 1) {
-          let found = false;
-          for (let j = 0; j < emotesetsKeys.length && !found; j += 1) {
-            const foundemote = emotesets[emotesetsKeys[j]].find((emote: {
-              code: string;
-            }) => emote.code === emotesList[i]);
-            if (foundemote) {
-              resultEmotes.push(foundemote.id);
-              resultEmoteSets.push(emotesetsKeys[j]);
-              found = true;
-            }
-          }
-          if (!found) throw new CustomError(`Emote ${emotesList[i]} wasn't found on the bot`);
+          const foundEmote = helixEmotes.find((emote: { name: string; }) => emote.name === emotesList[i]);
+          if (!foundEmote) throw new CustomError(`Emote ${emotesList[i]} wasn't found on the bot`);
+          resultEmotes.push(foundEmote.id);
+          resultEmoteSets.push(foundEmote.set);
         }
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: split[1], $options: 'i' } });
-        if (!heroQuery) throw new CustomError(`Hero ${split[1]} doesn't exist`);
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[2]}$`, $options: 'i' } });
+        if (!heroQuery) throw new CustomError(`Hero ${split[2]} doesn't exist`);
         db.collection('heroes').insertOne({
           id: heroQuery.id,
           custom: true,
           emotes: resultEmotes,
           emotesets: resultEmoteSets,
-          localized_name: ` ${split[0]} `,
+          localized_name: ` ${split[1]} `,
         });
         return `Emotes ${emotesList.join(' ')} added as custom emote for hero ${heroQuery.localized_name}`;
       }
@@ -252,8 +246,8 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (!userDocument?.globalMod) return '';
       if (args.length > 1) {
         const split = args.slice(1).join(' ').split(',').map((arg) => arg.trim());
-        if (split.length !== 2) throw new CustomError('Wrong syntax: !9kmmrbot emotes del emotes, hero');
-        const emotesList = split[0].split(' ');
+        if (split.length !== 3) throw new CustomError('Wrong syntax: !9kmmrbot delemotes channel, emotes, hero');
+        const emotesList = split[1].split(' ');
         const { emotesets } = twitch;
         const emotesetsKeys = Object.keys(emotesets);
         const resultEmotes = [];
@@ -272,7 +266,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           }
           if (!found) throw new CustomError(`Emote ${emotesList[i]} wasn't found on the bot`);
         }
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: split[1], $options: 'i' } });
+        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[1]}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${split[1]} doesn't exist`);
         db.collection('heroes').deleteOne({
           id: heroQuery.id, custom: true, emotes: resultEmotes, emotesets: resultEmoteSets,
@@ -283,19 +277,21 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
     case 'listemotes':
       if (!userDocument?.globalMod) return '';
       if (args.length === 1) {
-        const heroesQuery: { custom?: boolean, localized_name?: string, id: number, emotes: number[], emotesets: string[] }[] = await db.collection('heroes').find().toArray();
+        const heroesQuery: { custom?: boolean, localized_name?: string, id: number, emotes: any[], emotesets: string[] }[] = await db.collection('heroes').find().toArray();
         const emotes: { [key: string]: string[] } = {};
         const { emotesets } = twitch;
+        const uniqueEmoteSets = [...new Set(heroesQuery.filter((hero) => hero.custom && emotesets[hero.emotesets[0]]).map((hero) => hero.emotesets[0]))];
+        const helixEmotes = await Twitch.api('chat/emotes/set', { emote_set_id: uniqueEmoteSets })
+          .then((data) => data?.data?.filter((emote: { emote_type: string; }) => emote.emote_type === 'subscriptions')
+            .map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id })));
         for (let i = 0; i < heroesQuery.length; i += 1) {
           if (heroesQuery[i].custom) {
             let found = true;
             const heroEmotes: string[] = [];
             for (let j = 0; j < heroesQuery[i].emotes.length && found; j += 1) {
-              const foundEmote = emotesets[heroesQuery[i].emotesets[j]]?.find((emote: {
-                id: number;
-              }) => emote.id === heroesQuery[i].emotes[j]);
+              const foundEmote = helixEmotes?.find((emote: { id: any; }) => emote.id === heroesQuery[i].emotes[j].toString());
               if (foundEmote) {
-                heroEmotes.push(foundEmote.code);
+                heroEmotes.push(foundEmote.name);
               } else {
                 found = false;
               }

@@ -389,9 +389,9 @@ export default class Dota {
   }
 
   public static getHeroName(channelQuery: { emotes: any; }, heroesQuery: any, lobby_type: number, index: number) {
-    const heroNames = heroesQuery.filter((th: { emotesets: string | any[]; emotes: number[]; }) => {
+    const heroNames = heroesQuery.filter((th: { emotesets: any[]; emotes: any[]; }) => {
       for (let j = 0; j < th.emotesets?.length; j += 1) {
-        if (!twitch.emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id === th.emotes[j])) {
+        if (!twitch.emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id.toString() === th.emotes[j].toString())) {
           return false;
         }
       }
