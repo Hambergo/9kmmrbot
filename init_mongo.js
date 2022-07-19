@@ -64,7 +64,7 @@ const heroes = [{ localized_name: 'Not Picked', id: 0 }, { localized_name: 'Anti
 { localized_name: 'Ember Spirit', id: 106 }, { localized_name: 'Earth Spirit', id: 107 }, { localized_name: 'Underlord', id: 108 }, { localized_name: 'Terrorblade', id: 109 },
 { localized_name: 'Phoenix', id: 110 }, { localized_name: 'Oracle', id: 111 }, { localized_name: 'Winter Wyvern', id: 112 }, { localized_name: 'Arc Warden', id: 113 },
 { localized_name: 'Monkey King', id: 114 }, { localized_name: 'Dark Willow', id: 119 }, { localized_name: 'Pangolier', id: 120 }, { localized_name: 'Grimstroke', id: 121 },
-{ localized_name: 'Hoodwink', id: 123 }, { localized_name: 'Mars', id: 129 }, { localized_name: 'Dawnbreaker', id: 135 }, { localized_name: 'Marci', id: 138 }];
+{ localized_name: 'Hoodwink', id: 123 }, { localized_name: 'Mars', id: 129 }, { localized_name: 'Dawnbreaker', id: 135 }, { localized_name: 'Marci', id: 136 }];
 db.heroes.createIndex({ id: 1 });
 db.heroes.createIndex({ custom: 1, localized_name: 1 });
 db.heroes.insertMany(heroes);
