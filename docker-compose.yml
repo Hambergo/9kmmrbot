@@ -16,7 +16,7 @@ services:
     volumes:
       - 9kmmrbot:/usr/src/app/volumes
   mongodb:
-    image: "docker.io/bitnami/mongodb:4.4-debian-10"
+    image: "docker.io/bitnami/mongodb:5.0-debian-10"
     ports:
       - "27017:27017"
     restart: unless-stopped
