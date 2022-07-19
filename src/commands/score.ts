@@ -81,7 +81,7 @@ export default async function score(channel: string, tags: ChatUserstate, comman
       resultsArr.push(gamesQuery[i]);
     }
   }
-  const results = await Promise.all(resultsArr);
+  const results = (await Promise.all(resultsArr)).filter((result) => result && !result.error);
   for (let i = 0; i < needToGetResult.length; i += 1) {
     if (results[needToGetResult[i]]?.match_id && results[needToGetResult[i]]?.radiant_win !== undefined) db.collection('gameHistory').updateOne({ match_id: results[needToGetResult[i]].match_id }, { $set: { match_id: results[needToGetResult[i]].match_id, radiant_win: results[needToGetResult[i]].radiant_win } }, { upsert: true });
   }
