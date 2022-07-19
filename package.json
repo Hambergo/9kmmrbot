@@ -4,7 +4,7 @@
     "@types/mongodb": "^3.6.10",
     "@types/node": "^14.14.35",
     "@types/steam": "^0.0.28",
-    "@types/tmi.js": "^1.7.1",
+    "@types/tmi.js": "^1.8.1",
     "@typescript-eslint/eslint-plugin": "^4.19.0",
     "@typescript-eslint/parser": "^4.19.0",
     "eslint": "^7.22.0",
@@ -31,10 +31,10 @@
     "@node-steam/id": "^1.1.0",
     "dota2": "^7.0.3",
     "long": "^4.0.0",
-    "mongodb": "^3.6.5",
+    "mongodb": "^3.7.3",
     "source-map-support": "^0.5.19",
     "steam": "^1.4.1",
     "steam-resources": "github:seishun/node-steam-resources",
-    "tmi.js": "^1.7.5"
+    "tmi.js": "^1.8.5"
   }
 }
