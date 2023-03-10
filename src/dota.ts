@@ -42,13 +42,13 @@ type steamUserDetails = {
 }
 
 const generateRP = (txt: string) => {
-  const temp: {[name: string]: any} = {};
+  const temp: { [name: string]: any } = {};
   // eslint-disable-next-line no-control-regex
   txt.replace(/(?:^\x00([^\x00]*)\x00(.*)\x08$|\x01([^\x00]*)\x00([^\x00]*)\x00)/gm, (_match, ...args) => {
     if (args[0]) {
       temp[args[0]] = generateRP(args[1]);
     } else if (args[2]) {
-      [,,, temp[args[2]]] = args;
+      [, , , temp[args[2]]] = args;
     }
     return '';
   });
@@ -125,7 +125,11 @@ export default class Dota {
         }
       };
       this.dota2.on('sourceTVGamesData', callbackNotSpecificGames);
-      this.dota2.requestSourceTVGames({ start_game: 90 });
+      for (let start = 0; start < 100; start += 10) {
+        setTimeout(() => {
+          this.dota2.requestSourceTVGames({ start_game: start });
+        }, 50 * start);
+      }
     }).then(async (games: any) => {
       const db = await mongo.db;
       // eslint-disable-next-line no-param-reassign
@@ -484,6 +488,8 @@ export default class Dota {
   public static api(path: string, qs: querystring.ParsedUrlQueryInput = {}): Promise<any> {
     // eslint-disable-next-line no-param-reassign
     qs.key = process.env.STEAM_WEBAPI_KEY;
+    const now = Date.now();
+    // console.time(`dotaapi.${now}.${path}?${querystring.stringify(qs)}`);
     return new Promise((resolve, reject) => {
       const req = get(`http://api.steampowered.com/${path}?${querystring.stringify(qs)}`, (result) => {
         let data = '';
@@ -491,6 +497,7 @@ export default class Dota {
           data += chunk;
         });
         result.on('end', () => {
+          // console.timeEnd(`dotaapi.${now}.${path}?${querystring.stringify(qs)}`);
           try {
             resolve(JSON.parse(data));
           } catch (err) {

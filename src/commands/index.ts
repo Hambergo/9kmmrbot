@@ -46,8 +46,8 @@ export default class CommandSingleton {
     const commandName = args.shift()?.toLowerCase();
     for (let i = 0; i < this.commands.length; i += 1) {
       if (this.commands[i].triggers.includes(commandName as string)
-          && (!this.commands[i].channels
-            || this.commands[i].channels?.includes(Number(tags['room-id'] as string)))) {
+        && (!this.commands[i].channels
+          || this.commands[i].channels?.includes(Number(tags['room-id'] as string)))) {
         const {
           filename, command, cooldown,
         } = this.commands[i];

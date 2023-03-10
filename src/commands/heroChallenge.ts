@@ -28,7 +28,7 @@ export default async function heroChallenge(channel: string, tags: ChatUserstate
       })).then((matchResult) => {
         if (matchResult?.result?.players) {
           for (let j = 0; j < matchResult.result.players.length; j += 1) {
-          // eslint-disable-next-line no-param-reassign
+            // eslint-disable-next-line no-param-reassign
             if (gamesQuery[i].players[j]) matchResult.result.players[j].account_id = gamesQuery[i].players[j].account_id;
           }
         }

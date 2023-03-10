@@ -12,7 +12,7 @@ process.on('uncaughtException', async (err) => {
     name: err.name,
     stack: err.stack,
     createdAt: new Date(),
-  }).catch(() => {}).then(() => console.log(err));
+  }).catch(() => { }).then(() => console.log(err));
 });
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM');

@@ -6,79 +6,87 @@ import Twitch from '../twitch';
 
 const mongo = Mongo.getInstance();
 
-function getMatchType(game: {lobby_type: number, game_mode: number}): 'ranked'|'turbo'|'unranked' {
+function getMatchType(game: { lobby_type: number, game_mode: number }): 'ranked' | 'turbo' | 'unranked' {
   if (game.lobby_type === 7) return 'ranked';
   if (game.game_mode === 23) return 'turbo';
   return 'unranked';
 }
 
-function pushWinLossString(wl:string[], match_type:string, counters: {win:number, lose:number}) {
+function pushWinLossString(wl: string[], match_type: string, counters: { win: number, lose: number }) {
   if (counters.win + counters.lose > 0) wl.push(`${match_type} W ${counters.win} - L ${counters.lose}`);
 }
 
 export default async function score(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
   const db = await mongo.db;
-  const [channelQuery, { data: [stream] }, { data: videos }] = await Promise.all([
+  const videosPromise = Twitch.api('videos', { user_id: tags['room-id'], type: 'archive' });
+  const [channelQuery, { data: [stream] }] = await Promise.all([
     db.collection('channels').findOne({ id: Number(tags['room-id']) }),
     Twitch.api('streams', { user_id: tags['room-id'] }),
-    Twitch.api('videos', { user_id: tags['room-id'], type: 'archive' }),
   ]);
   if (!stream || stream.type !== 'live' || !stream.started_at) {
     throw new CustomError('Stream isn\'t live');
   }
   if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
+  let game = { match_id: null };
+  const gamePromise = Dota.findGame(channelQuery).catch(() => ({ match_id: null }));
+  const gamesQuery = await db.collection('gameHistory').find({
+    // match_id: { $ne: game.match_id },
+    'players.account_id': { $in: channelQuery.accounts },
+    'players.hero_id': { $ne: 0 },
+    lobby_type: { $in: [0, 7] },
+    // createdAt: { $gte: streamStart },
+  }, { sort: { createdAt: -1 } }).toArray();
   let streamStart = new Date(stream.started_at);
-  if (videos && videos.length) {
-    for (let i = 0; i < videos.length; i += 1) {
-      const videoStart = new Date(videos[i].created_at);
-      const h = videos[i].duration.search('h');
-      const m = videos[i].duration.search('m');
-      const s = videos[i].duration.search('s');
-      const duration = (h > 0 ? 3600 * Number(videos[i].duration.substring(0, h)) : 0)
-        + (m > h ? 60 * Number(videos[i].duration.substring(h + 1, m)) : 0)
-        + (s === videos[i].duration.length - 1 ? Number(videos[i].duration.substring(m + 1, s)) : 0);
-      if (new Date(videoStart.valueOf() + (duration + 1800) * 1000) > streamStart) {
-        streamStart = videoStart;
-      } else {
-        break;
+  try {
+    const { data: videos } = await videosPromise;
+    if (videos && videos.length) {
+      for (let i = 0; i < videos.length; i += 1) {
+        const videoStart = new Date(videos[i].created_at);
+        const h = videos[i].duration.search('h');
+        const m = videos[i].duration.search('m');
+        const s = videos[i].duration.search('s');
+        const duration = (h > 0 ? 3600 * Number(videos[i].duration.substring(0, h)) : 0)
+          + (m > h ? 60 * Number(videos[i].duration.substring(h + 1, m)) : 0)
+          + (s === videos[i].duration.length - 1 ? Number(videos[i].duration.substring(m + 1, s)) : 0);
+        if (new Date(videoStart.valueOf() + (duration + 1800) * 1000) > streamStart) {
+          streamStart = videoStart;
+        } else {
+          break;
+        }
       }
     }
+  } catch (err: any) {
+    //
   }
   streamStart = new Date(streamStart.valueOf() - 600000);
-  let game = { match_id: null };
+
   try {
-    game = await Dota.findGame(channelQuery);
+    game = await gamePromise;
   } catch (err) {
     //
   }
 
-  const gamesQuery = await db.collection('gameHistory').find({
-    match_id: { $ne: game.match_id },
-    'players.account_id': { $in: channelQuery.accounts },
-    'players.hero_id': { $ne: 0 },
-    lobby_type: { $in: [0, 7] },
-    createdAt: { $gte: streamStart },
-  }, { sort: { createdAt: -1 } }).toArray();
   const resultsArr = [];
   const needToGetResult: number[] = [];
-  for (let i = 0; i < gamesQuery.length; i += 1) {
+  const filteredGames = gamesQuery.filter((filteredGame) => filteredGame.createdAt > streamStart && filteredGame.match_id !== game.match_id);
+  for (let i = 0; i < filteredGames.length; i += 1) {
     // eslint-disable-next-line no-continue
-    if (i > 0 && gamesQuery[i].match_id === gamesQuery[i - 1].match_id) continue;
-    if (gamesQuery[i].radiant_win === undefined) {
-      resultsArr.push(Dota.api('IDOTA2Match_570/GetMatchDetails/v1', { match_id: gamesQuery[i].match_id }).catch(() => ({
-        result: gamesQuery[i],
+    if (i > 0 && filteredGames[i].match_id === filteredGames[i - 1].match_id) continue;
+    if (filteredGames[i].radiant_win === undefined) {
+      resultsArr.push(Dota.api('IDOTA2Match_570/GetMatchDetails/v1', { match_id: filteredGames[i].match_id }).catch(() => ({
+        result: filteredGames[i],
       })).then((matchResult) => {
         if (matchResult?.result?.players) {
           for (let j = 0; j < matchResult.result.players.length; j += 1) {
             // eslint-disable-next-line no-param-reassign
-            if (gamesQuery[i].players[j]) matchResult.result.players[j].account_id = gamesQuery[i].players[j].account_id;
+            if (filteredGames[i].players[j]) matchResult.result.players[j].account_id = filteredGames[i].players[j].account_id;
           }
         }
         return matchResult.result;
       }));
       needToGetResult.push(i);
     } else {
-      resultsArr.push(gamesQuery[i]);
+      resultsArr.push(filteredGames[i]);
     }
   }
   const results = (await Promise.all(resultsArr)).filter((result) => result && !result.error);

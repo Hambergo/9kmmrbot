@@ -34,7 +34,7 @@ export default class Twitch {
     });
     this.client.on('notice', async (channel, msgid, message) => {
       if (msgid === 'msg_channel_suspended' || msgid === 'msg_banned') {
-        if (msgid === 'msg_banned') this.part(channel).catch(() => {});
+        if (msgid === 'msg_banned') this.part(channel).catch(() => { });
         const db = await mongo.db;
         db.collection('channels').updateOne({ name: channel.substring(1) }, { $unset: { name: '' } });
       }
@@ -89,8 +89,9 @@ export default class Twitch {
       if (self) return;
       let response: string = '';
       try {
+        // console.time(`${tags.id}.${channel}.${message}`);
         response = await this.commands.runCommand(channel, tags, message);
-      } catch (err) {
+      } catch (err: any) {
         if (err.name === 'CustomError') response = err.message;
         else {
           console.log(channel, message, err);
@@ -98,9 +99,10 @@ export default class Twitch {
       } finally {
         if (response) {
           if (process.env.NODE_ENV === 'production') {
-            this.say(channel, response).catch((err) => {});
+            this.say(channel, response).catch((err) => { });
           }
           console.log(`<${channel.substring(1)}> ${response}`);
+          // console.timeEnd(`${tags.id}.${channel}.${message}`);
           const db = await mongo.db;
           db.collection('channels').updateOne({ id: Number(tags['room-id']) }, { $inc: { count: 1 } });
         }
@@ -136,6 +138,8 @@ export default class Twitch {
   }
 
   public static api(path: string, qs?: querystring.ParsedUrlQueryInput): Promise<any> {
+    const now = Date.now();
+    // console.time(`twitchapi.${now}.${path}?${querystring.stringify(qs)}`);
     return new Promise((resolve, reject) => {
       const req = get('https://api.twitch.tv', {
         path: `/helix/${path}?${querystring.stringify(qs)}`,
@@ -149,6 +153,7 @@ export default class Twitch {
           data += chunk;
         });
         result.on('end', () => {
+          // console.timeEnd(`twitchapi.${now}.${path}?${querystring.stringify(qs)}`);
           try {
             resolve(JSON.parse(data));
           } catch (err) {
