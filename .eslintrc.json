@@ -30,6 +30,7 @@
     ],
     "camelcase": "off",
     "max-len": "off",
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "no-use-before-define": 1
   }
 }
