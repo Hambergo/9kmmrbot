@@ -1,15 +1,15 @@
-FROM node:lts-alpine@sha256:b4cca2f95c701d632ffd39258f9ec9ee9fb13c8cc207f1da02eb990c98395ac1 as base
+FROM node:lts-alpine@sha256:19eaf41f3b8c2ac2f609ac8103f9246a6a6d46716cdbe49103fdb116e55ff0cc as base
 RUN apk add --no-cache subversion git openssh && npm i -g npm
 WORKDIR /usr/src/app
 COPY package*.json ./
 FROM base as builder
 RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
-COPY src src
+COPY src .eslintrc.json src/
 COPY tsconfig.json ./
-RUN npm run build
+RUN npm run lint && npm run build
 FROM base as prod_node_modules
-RUN --mount=type=cache,target=/root/.npm npm ci --prod --prefer-offline --no-audit
-FROM node:lts-alpine@sha256:b4cca2f95c701d632ffd39258f9ec9ee9fb13c8cc207f1da02eb990c98395ac1
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline --no-audit
+FROM node:lts-alpine@sha256:19eaf41f3b8c2ac2f609ac8103f9246a6a6d46716cdbe49103fdb116e55ff0cc
 USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=prod_node_modules /usr/src/app/node_modules node_modules
