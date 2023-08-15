@@ -1,6 +1,6 @@
 import { ChatUserstate } from 'tmi.js';
 import { ID } from '@node-steam/id';
-import Mongo from '../mongo';
+import Mongo, { ChannelsQuery, HeroesQuery, NotablePlayersQuery } from '../mongo';
 import CustomError from '../customError';
 import Twitch from '../twitch';
 import Command from './index';
@@ -23,16 +23,16 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
   const db = await mongo.db;
   const userId = Number(tags['user-id']);
   const roomId = Number(tags['room-id']);
-  const channels = await db.collection('channels').find({ id: { $in: [userId, roomId] } }).toArray();
-  const channelDocument = channels.find((document) => document.id === roomId);
-  const userDocument = channels.find((document) => document.id === userId);
+  const channels = await db.collection<ChannelsQuery>('channels').find({ id: { $in: [userId, roomId] } }).toArray();
+  const channelDocument = channels.find((document) => document.id === roomId) as ChannelsQuery;
+  const userDocument = channels.find((document) => document.id === userId) as ChannelsQuery;
   if (roomId !== userId && !userDocument?.globalMod && (!(channelDocument?.mods?.some((mod: Number) => mod === userId)))) return '';
   if (args?.length === 0) return '';
   switch (args[0].toLowerCase()) {
     case 'id':
       if (args.length > 1) {
         const heroName = args.slice(1).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
+        const heroQuery = await db.collection<HeroesQuery>('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
         const game = await Dota.findGame(channelDocument, true);
         const player = game.players.find((tempPlayer: { hero_id: any; }) => tempPlayer.hero_id === heroQuery.id);
@@ -54,7 +54,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot addacc id');
         } else {
           try {
-            await db.collection('channels').updateOne({ id: roomId }, { $addToSet: { accounts: id } });
+            await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $addToSet: { accounts: id } });
             return `${tags.username} succesfully added ${id} to ${channel.substring(1)} accounts`;
           } catch (err) {
             throw new CustomError(`Error adding ${id} to ${channel.substring(1)} accounts`);
@@ -70,7 +70,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot delacc id');
         }
         try {
-          await db.collection('channels').updateOne({ id: roomId }, { $pull: { accounts: id } });
+          await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $pull: { accounts: id } });
           return `${tags.username} succesfully removed ${id} from ${channel.substring(1)} accounts`;
         } catch (err) {
           throw new CustomError(`Error removing ${id} from ${channel.substring(1)} accounts`);
@@ -85,7 +85,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot addnp id nickname');
         } else {
           try {
-            await db.collection('notablePlayers').updateOne({ id, channel: roomId }, {
+            await db.collection<NotablePlayersQuery>('notablePlayers').updateOne({ id, channel: roomId }, {
               $set: {
                 id, channel: roomId, name: args.slice(2).join(' '), enabled: true, lastChanged: new Date(), lastChangedBy: userId,
               },
@@ -105,7 +105,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot delnp id');
         } else {
           try {
-            await db.collection('notablePlayers').updateOne({ id, channel: roomId }, {
+            await db.collection<NotablePlayersQuery>('notablePlayers').updateOne({ id, channel: roomId }, {
               $set: {
                 id, enabled: false, lastChanged: new Date(), lastChangedBy: userId,
               },
@@ -125,7 +125,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
         try {
           if ((/^[a-zA-Z0-9][\w]{0,24}$/).test(username)) {
             const { data: [user] } = await Twitch.api('users', { login: username });
-            await db.collection('channels').updateOne({ id: roomId }, { $addToSet: { mods: Number(user.id) } });
+            await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $addToSet: { mods: Number(user.id) } });
             return `Successfully added ${username} to ${channel.substring(1)} 9kmmrbot mods`;
           }
           throw new Error('Not a valid twitch username');
@@ -141,7 +141,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
         try {
           if ((/^[a-zA-Z0-9][\w]{0,24}$/).test(username)) {
             const { data: [user] } = await Twitch.api('users', { login: username });
-            await db.collection('channels').updateOne({ id: roomId }, { $pull: { mods: Number(user.id) } });
+            await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $pull: { mods: Number(user.id) } });
             return `Successfully removed ${username} from ${channel.substring(1)} 9kmmrbot mods`;
           }
           throw new Error('Not a valid twitch username');
@@ -150,64 +150,64 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
         }
       }
       break;
-    case 'hc':
-      if (args[1] === 'addhero') {
-        const heroName = args.slice(2).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
-        if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
-        const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
-        if (channelQuery.hc.find((hc: { hero_id: number; }) => hc.hero_id === heroQuery.id)) return `Hero ${heroQuery.localized_name} already exists. In order to change starting time, use !9kmmrbot hc settime `;
-        const start = new Date();
-        await db.collection('channels').updateOne({ id: roomId }, { $push: { hc: { hero_id: heroQuery.id, date: start } } });
-        return `Added ${heroQuery.localized_name} to hero challenge list and start time to ${getTime(start)}`;
-      }
-      if (args[1] === 'delhero') {
-        const heroName = args.slice(2).join(' ');
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
-        if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
-        await db.collection('channels').updateOne({ id: roomId }, { $pull: { hc: { hero_id: heroQuery.id } } });
-        return `Removed ${heroQuery.localized_name} from hero challenge list`;
-      } if (args[1] === 'settime') {
-        if (!args[2]) return 'Wrong syntax: !9kmmrbot hc settime hero name | time';
-        const split = args.slice(2).join(' ').split('|');
-        const heroName = split[0].trim();
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
-        if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
-        let start = new Date();
-        if (split.length > 1) {
-          start = new Date(split[1].trim());
-          if (start.toString() === 'Invalid Date') start = new Date();
-        }
-        await db.collection('channels').updateOne({ id: roomId, 'hc.hero_id': heroQuery.id }, { $set: { 'hc.$.date': start } });
-        return `Updated ${heroQuery.localized_name} start time to ${getTime(start)}`;
-      }
-      if (args[1] === 'list') {
-        const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
-        if (!channelQuery?.hc?.length) throw new CustomError('Hero challenge empty');
-        const heroesQuery = await db.collection('heroes').find({ id: { $in: channelQuery.hc.map((tempHero: { hero_id: number; }) => tempHero.hero_id) } }).toArray();
-        return channelQuery.hc.map((hc: { hero_id: number; date: Date; }) => `${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === hc.hero_id), 0, 0)} since ${getTime(hc.date)}`).join(', ');
-      }
-      return '';
+    // case 'hc':
+    //   if (args[1] === 'addhero') {
+    //     const heroName = args.slice(2).join(' ');
+    //     const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
+    //     if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
+    //     const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['room-id']) }) as ChannelsQuery;
+    //     if (channelQuery.hc?.find((hc: { hero_id: number; }) => hc.hero_id === heroQuery.id)) return `Hero ${heroQuery.localized_name} already exists. In order to change starting time, use !9kmmrbot hc settime `;
+    //     const start = new Date();
+    //     await db.collection('channels').updateOne({ id: roomId }, { $push: { hc: { hero_id: heroQuery.id, date: start } } });
+    //     return `Added ${heroQuery.localized_name} to hero challenge list and start time to ${getTime(start)}`;
+    //   }
+    //   if (args[1] === 'delhero') {
+    //     const heroName = args.slice(2).join(' ');
+    //     const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
+    //     if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
+    //     await db.collection('channels').updateOne({ id: roomId }, { $pull: { hc: { hero_id: heroQuery.id } } });
+    //     return `Removed ${heroQuery.localized_name} from hero challenge list`;
+    //   } if (args[1] === 'settime') {
+    //     if (!args[2]) return 'Wrong syntax: !9kmmrbot hc settime hero name | time';
+    //     const split = args.slice(2).join(' ').split('|');
+    //     const heroName = split[0].trim();
+    //     const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${heroName}$`, $options: 'i' } });
+    //     if (!heroQuery) throw new CustomError(`Hero ${heroName} doesn't exist`);
+    //     let start = new Date();
+    //     if (split.length > 1) {
+    //       start = new Date(split[1].trim());
+    //       if (start.toString() === 'Invalid Date') start = new Date();
+    //     }
+    //     await db.collection('channels').updateOne({ id: roomId, 'hc.hero_id': heroQuery.id }, { $set: { 'hc.$.date': start } });
+    //     return `Updated ${heroQuery.localized_name} start time to ${getTime(start)}`;
+    //   }
+    //   if (args[1] === 'list') {
+    //     const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['room-id']) });
+    //     if (!channelQuery?.hc?.length) throw new CustomError('Hero challenge empty');
+    //     const heroesQuery = await db.collection<HeroesQuery>('heroes').find({ id: { $in: channelQuery.hc.map((tempHero: { hero_id: number; }) => tempHero.hero_id) } }).toArray();
+    //     return channelQuery.hc.map((hc: { hero_id: number; date: Date; }) => `${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === hc.hero_id), 0, 0)} since ${getTime(hc.date)}`).join(', ');
+    //   }
+    //   return '';
     case 'toggleself':
-      await db.collection('channels').updateOne({ id: roomId }, { $set: { self: !channelDocument.self } });
+      await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $set: { self: !channelDocument.self } });
       return `Toggled showing streamer as a notable player ${!channelDocument.self ? 'on' : 'off'}`;
     case 'toggleemotes':
-      await db.collection('channels').updateOne({ id: roomId }, { $set: { emotes: !channelDocument.emotes } });
+      await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $set: { emotes: !channelDocument.emotes } });
       return `Toggled showing emotes instead of hero names ${!channelDocument.emotes ? 'on' : 'off'}`;
     case 'delay':
       if (args.length === 1) return `Showing games ${channelDocument.delay?.enabled ? `in ${channelDocument.delay.seconds} seconds delay` || 30 : 'live'}`;
       if (args[1] === 'on') {
-        await db.collection('channels').updateOne({ id: roomId }, { $set: { 'delay.enabled': true } });
+        await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $set: { 'delay.enabled': true } });
         return 'Turned delay on';
       }
       if (args[1] === 'off') {
-        await db.collection('channels').updateOne({ id: roomId }, { $set: { 'delay.enabled': false } });
+        await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $set: { 'delay.enabled': false } });
         return 'Turned delay off';
       }
       if (args[1] === 'set' && args.length === 3) {
         const index = Number(args[2]);
         if (!Number.isNaN(index) && index > 0 && index < 601 && index % 30 === 0) {
-          await db.collection('channels').updateOne({ id: roomId }, { $set: { 'delay.seconds': index } });
+          await db.collection<ChannelsQuery>('channels').updateOne({ id: roomId }, { $set: { 'delay.seconds': index } });
           return `Set delay to ${index}`;
         }
       }
@@ -230,9 +230,9 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           resultEmotes.push(foundEmote.id);
           resultEmoteSets.push(foundEmote.set);
         }
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[2]}$`, $options: 'i' } });
+        const heroQuery = await db.collection<HeroesQuery>('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[2]}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${split[2]} doesn't exist`);
-        db.collection('heroes').insertOne({
+        db.collection<HeroesQuery>('heroes').insertOne({
           id: heroQuery.id,
           custom: true,
           emotes: resultEmotes,
@@ -266,9 +266,9 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           }
           if (!found) throw new CustomError(`Emote ${emotesList[i]} wasn't found on the bot`);
         }
-        const heroQuery = await db.collection('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[1]}$`, $options: 'i' } });
+        const heroQuery = await db.collection<HeroesQuery>('heroes').findOne({ $or: [{ custom: false }, { custom: { $exists: false } }], localized_name: { $regex: `^${split[1]}$`, $options: 'i' } });
         if (!heroQuery) throw new CustomError(`Hero ${split[1]} doesn't exist`);
-        db.collection('heroes').deleteOne({
+        db.collection<HeroesQuery>('heroes').deleteOne({
           id: heroQuery.id, custom: true, emotes: resultEmotes, emotesets: resultEmoteSets,
         });
         return `Emotes ${emotesList.join(' ')} deleted as custom emote for hero ${heroQuery.localized_name}`;
@@ -277,7 +277,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
     case 'listemotes':
       if (!userDocument?.globalMod) return '';
       if (args.length === 1) {
-        const heroesQuery: { custom?: boolean, localized_name?: string, id: number, emotes: any[], emotesets: string[] }[] = await db.collection('heroes').find().toArray();
+        const heroesQuery = await db.collection<HeroesQuery>('heroes').find().toArray();
         const emotes: { [key: string]: string[] } = {};
         const { emotesets } = twitch;
         const uniqueEmoteSets = [...new Set(heroesQuery.filter((hero) => hero.custom && emotesets[hero.emotesets[0]]).map((hero) => hero.emotesets[0]))];
@@ -285,11 +285,11 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           .then((data) => data?.data?.filter((emote: { emote_type: string; }) => emote.emote_type === 'subscriptions')
             .map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id })));
         for (let i = 0; i < heroesQuery.length; i += 1) {
-          if (heroesQuery[i].custom) {
+          if (heroesQuery[i].custom && heroesQuery[i].emotes) {
             let found = true;
             const heroEmotes: string[] = [];
-            for (let j = 0; j < heroesQuery[i].emotes.length && found; j += 1) {
-              const foundEmote = helixEmotes?.find((emote: { id: any; }) => emote.id === heroesQuery[i].emotes[j].toString());
+            for (let j = 0; j < (heroesQuery[i].emotes as number[]).length && found; j += 1) {
+              const foundEmote = helixEmotes?.find((emote: { id: any; }) => emote.id === (heroesQuery[i].emotes as number[])[j].toString());
               if (foundEmote) {
                 heroEmotes.push(foundEmote.name);
               } else {
@@ -322,7 +322,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot addglobalnp id nickname');
         } else {
           try {
-            await db.collection('notablePlayers').updateOne({ id, channel: { $exists: false } }, {
+            await db.collection<NotablePlayersQuery>('notablePlayers').updateOne({ id, channel: { $exists: false } }, {
               $set: {
                 id, name: args.slice(2).join(' '), enabled: true, lastChanged: new Date(), lastChangedBy: userId,
               },
@@ -343,7 +343,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
           throw new CustomError('Wrong syntax: !9kmmrbot delglobalnp id');
         } else {
           try {
-            await db.collection('notablePlayers').updateOne({ id, channel: { $exists: false } }, {
+            await db.collection<NotablePlayersQuery>('notablePlayers').updateOne({ id, channel: { $exists: false } }, {
               $set: {
                 id, enabled: false, lastChanged: new Date(), lastChangedBy: userId,
               },
@@ -361,7 +361,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
         twitch.join(args[1]).catch(() => { });
-        db.collection('channels').updateOne({ id: Number(user.id) }, { $set: { name: args[1] } }, { upsert: true });
+        db.collection<ChannelsQuery>('channels').updateOne({ id: Number(user.id) }, { $set: { name: args[1] } }, { upsert: true });
         return `Joining ${args[1]}`;
       }
       return '';
@@ -370,7 +370,7 @@ export default async function moderation(channel: string, tags: ChatUserstate, c
       if (args.length > 1 && (/^[a-zA-Z0-9][\w]{0,24}$/).test(args[1])) {
         const { data: [user] } = await Twitch.api('users', { login: args[1] });
         twitch.join(args[1]).catch(() => { });
-        db.collection('channels').updateOne({ id: Number(user.id) }, { $unset: { name: '' } }, { upsert: true });
+        db.collection<ChannelsQuery>('channels').updateOne({ id: Number(user.id) }, { $unset: { name: '' } }, { upsert: true });
         return `Leaving ${args[1]}`;
       }
       break;

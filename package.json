@@ -1,17 +1,16 @@
 {
   "devDependencies": {
-    "@types/long": "^4.0.1",
-    "@types/mongodb": "^3.6.10",
-    "@types/node": "^14.14.35",
-    "@types/steam": "^0.0.28",
-    "@types/tmi.js": "^1.8.1",
-    "@typescript-eslint/eslint-plugin": "^4.19.0",
-    "@typescript-eslint/parser": "^4.19.0",
-    "eslint": "^7.22.0",
-    "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-plugin-import": "^2.22.1",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.3"
+    "@types/long": "^4.0.2",
+    "@types/node": "^18.15.0",
+    "@types/steam": "^0.0.29",
+    "@types/tmi.js": "^1.8.3",
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "eslint": "^8.36.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
   },
   "name": "9kmmrbot",
   "version": "1.0.0",
@@ -21,6 +20,7 @@
     "start": "node -r source-map-support/register dist/index.js",
     "debug": "node -r source-map-support/register --inspect=0.0.0.0:9229 dist/index.js",
     "ts-node": "ts-node src/index.ts",
+    "lint": "eslint \"src/**/**.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -28,11 +28,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@node-steam/id": "^1.1.0",
+    "@node-steam/id": "^1.2.0",
     "dota2": "^7.0.3",
-    "long": "^4.0.0",
-    "mongodb": "^3.7.3",
-    "source-map-support": "^0.5.19",
+    "long": "^5.2.1",
+    "mongodb": "^5.1.0",
+    "source-map-support": "^0.5.21",
     "steam": "^1.4.1",
     "steam-resources": "github:seishun/node-steam-resources",
     "tmi.js": "^1.8.5"

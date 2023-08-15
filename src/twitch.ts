@@ -2,7 +2,7 @@ import { Client, ChatUserstate } from 'tmi.js';
 import { get } from 'https';
 import querystring from 'querystring';
 import CommandSingleton from './commands';
-import Mongo from './mongo';
+import Mongo, { ChannelsQuery } from './mongo';
 
 const mongo = Mongo.getInstance();
 
@@ -13,7 +13,7 @@ export default class Twitch {
 
   private commands = CommandSingleton.getInstance();
 
-  public emotesets: any = {}
+  public emotesets: any = {};
 
   private constructor() {
     this.client = new Client({
@@ -36,7 +36,7 @@ export default class Twitch {
       if (msgid === 'msg_channel_suspended' || msgid === 'msg_banned') {
         if (msgid === 'msg_banned') this.part(channel).catch(() => { });
         const db = await mongo.db;
-        db.collection('channels').updateOne({ name: channel.substring(1) }, { $unset: { name: '' } });
+        db.collection<ChannelsQuery>('channels').updateOne({ name: channel.substring(1) }, { $unset: { name: '' } });
       }
     });
     this.client.on('connected', async () => {
@@ -47,7 +47,7 @@ export default class Twitch {
         (await mongo.db).collection('channels').find({ name: { $exists: true } }, { sort: { count: -1 } }).toArray(),
         Twitch.api('streams', { game_id: 29595, first: 100 }).then(({ data: streams }) => streams.map((stream: { user_id: any; }) => Number(stream.user_id))),
       ]);
-      const liveStreamsToJoin = channelsQuery.filter((channel) => streamIds.includes(channel.id)).map((channel: { name: any; }) => channel.name);
+      const liveStreamsToJoin = channelsQuery.filter((channel) => streamIds.includes(channel.id)).map((channel) => channel.name);
       const channelsSort = new Set<string>(liveStreamsToJoin);
       channelsQuery.forEach((channel) => channelsSort.add(channel.name));
       const channels = Array.from(channelsSort.values());
@@ -71,7 +71,7 @@ export default class Twitch {
       const helixEmotes: { set: any, name: any, id: any }[] = [];
       const promise = async () => {
         await Twitch.api('chat/emotes/set', { emote_set_id: emotesets.splice(0, 25) })
-          .then((data: any) => helixEmotes.push(...data?.data?.map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id }))));
+          .then((data) => helixEmotes.push(...data.data.map((emote: { emote_set_id: any; name: any; id: any }) => ({ set: emote.emote_set_id, name: emote.name, id: emote.id }))));
         if (emotesets.length) {
           await promise();
         }
@@ -104,7 +104,7 @@ export default class Twitch {
           console.log(`<${channel.substring(1)}> ${response}`);
           // console.timeEnd(`${tags.id}.${channel}.${message}`);
           const db = await mongo.db;
-          db.collection('channels').updateOne({ id: Number(tags['room-id']) }, { $inc: { count: 1 } });
+          db.collection<ChannelsQuery>('channels').updateOne({ id: Number(tags['room-id']) }, { $inc: { count: 1 } });
         }
       }
     });

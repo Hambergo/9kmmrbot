@@ -1,13 +1,13 @@
 import Twitch from './twitch';
 import Dota from './dota';
-import Mongo from './mongo';
+import Mongo, { ErrorsQuery } from './mongo';
 
 const dota = Dota.getInstance();
 const twitch = Twitch.getInstance();
 const mongo = Mongo.getInstance();
 process.on('uncaughtException', async (err) => {
   const db = await mongo.db;
-  db.collection('errors').insertOne({
+  db.collection<ErrorsQuery>('errors').insertOne({
     message: err.message,
     name: err.name,
     stack: err.stack,

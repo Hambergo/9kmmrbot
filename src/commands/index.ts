@@ -1,5 +1,5 @@
 import { ChatUserstate } from 'tmi.js';
-import Mongo from '../mongo';
+import Mongo, { ChannelsQuery, CommandsQuery } from '../mongo';
 
 const mongo = Mongo.getInstance();
 
@@ -35,11 +35,11 @@ export default class CommandSingleton {
   public refreshCommands(): void {
     this.commands = [];
     mongo.db.then(async (db) => {
-      this.commands = await db.collection('commands').find({}).toArray();
+      this.commands = await db.collection<CommandsQuery>('commands').find({}).toArray();
     });
   }
 
-  private commandsCooldowns: { [key: string]: { [key: string]: ReturnType<typeof setTimeout> } } = {}
+  private commandsCooldowns: { [key: string]: { [key: string]: ReturnType<typeof setTimeout> } } = {};
 
   public runCommand(channel: string, tags: ChatUserstate, message: string): Promise<string> {
     const args: string[] = message.split(' ');
@@ -61,7 +61,7 @@ export default class CommandSingleton {
         return new Promise((res, rej) => {
           Promise.resolve().then(async () => {
             const db = await mongo.db;
-            const channelQuery = await db.collection('channels').findOne({ id: Number(tags['user-id']) });
+            const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['user-id']) });
             if (channelQuery?.globalMod) {
               offCooldown = true;
               clearTimeout(this.commandsCooldowns[tags['room-id'] as string][`${filename}/${command}`]);

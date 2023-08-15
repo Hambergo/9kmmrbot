@@ -1,35 +1,22 @@
 import { ChatUserstate } from 'tmi.js';
 import Dota from '../dota';
-import Mongo from '../mongo';
+import Mongo, {
+  ChannelsQuery, GameModesQuery, GamesQuery, HeroesQuery, NotablePlayersQuery,
+} from '../mongo';
 import Twitch from '../twitch';
 
 const mongo = Mongo.getInstance();
 const twitch = Twitch.getInstance();
 
-const parseNotablePlayers = async (game: {
-  players: {
-    hero_id: number
-    account_id: number
-  }[];
-  game_mode: number
-  lobby_type: number
-  average_mmr: number
-  weekend_tourney_skill_level?: number
-  weekend_tourney_bracket_round?: number
-}, channelQuery: {
-  id: number
-  accounts: number[]
-  self: boolean
-  emotes: boolean
-}, debug: boolean): Promise<string> => {
+const parseNotablePlayers = async (game: GamesQuery, channelQuery: ChannelsQuery, debug: boolean): Promise<string> => {
   const db = await mongo.db;
   const [heroesQuery, notablePlayersQuery, gameModesQuery] = await Promise.all([
-    db.collection('heroes').find({
+    db.collection<HeroesQuery>('heroes').find({
       id: {
         $in: game.players.map((player) => player.hero_id),
       },
     }).toArray(),
-    db.collection('notablePlayers').find({
+    db.collection<NotablePlayersQuery>('notablePlayers').find({
       $and: [
         {
           id: {
@@ -46,7 +33,7 @@ const parseNotablePlayers = async (game: {
           enabled: true,
         }],
     }).sort({ channel: -1 }).toArray(),
-    db.collection('gameModes').findOne({ id: game.game_mode }),
+    db.collection<GameModesQuery>('gameModes').findOne({ id: game.game_mode }),
   ]);
   const gameMode = gameModesQuery?.name || 'Unknown';
   const mmr = game.average_mmr ? ` [${game.average_mmr} avg MMR]` : '';
@@ -56,7 +43,7 @@ const parseNotablePlayers = async (game: {
     const np = notablePlayersQuery.find((tnp) => tnp.id === game.players[i].account_id);
     const heroNames = heroesQuery.filter((hero) => hero.id === game.players[i].hero_id);
     if (debug || (np && (channelQuery.self || !channelQuery.accounts.includes(game.players[i].account_id)))) {
-      const heroName = Dota.getHeroName(channelQuery, heroNames, game.lobby_type, i);
+      const heroName = Dota.getHeroName(channelQuery, heroNames, game, i);
       nps.push(`${np?.name || ''} (${debug ? `${game.players[i].account_id}, ` : ''}${heroName})`);
     }
   }
@@ -66,9 +53,9 @@ async function getNotablePlayers(tags: ChatUserstate, debug: boolean = false) {
   const db = await mongo.db;
   const roomId = Number(tags['room-id']);
   const userId = Number(tags['user-id']);
-  const channelQuery = await db.collection('channels').find({ id: { $in: [userId, roomId] } }).toArray();
-  const channelDocument = channelQuery.find((document) => document.id === roomId);
-  const userDocument = channelQuery.find((document) => document.id === userId);
+  const channelQuery = await db.collection<ChannelsQuery>('channels').find({ id: { $in: [userId, roomId] } }).toArray();
+  const channelDocument = channelQuery.find((document) => document.id === roomId) as ChannelsQuery;
+  const userDocument = channelQuery.find((document) => document.id === userId) as ChannelsQuery;
   try {
     if (debug && roomId !== userId && !userDocument?.globalMod && (!(channelDocument?.mods?.some((mod: Number) => mod === userId)))) return '';
   } catch (err) {

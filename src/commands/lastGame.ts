@@ -1,5 +1,5 @@
 import { ChatUserstate } from 'tmi.js';
-import Mongo from '../mongo';
+import Mongo, { ChannelsQuery, GameHistoryQuery, HeroesQuery } from '../mongo';
 import Dota from '../dota';
 import CustomError from '../customError';
 
@@ -7,10 +7,10 @@ const mongo = Mongo.getInstance();
 
 export default async function lastgame(channel: string, tags: ChatUserstate, commandName: string, ...args: string[]) {
   const db = await mongo.db;
-  const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
+  const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['room-id']) }) as ChannelsQuery;
   const game = await Dota.findGame(channelQuery);
   if (!game) throw new CustomError('Game wasn\'t found');
-  const gameHistory = await db.collection('gameHistory').find({
+  const gameHistory = await db.collection<GameHistoryQuery>('gameHistory').find({
     'players.account_id': {
       $in: channelQuery.accounts,
     },
@@ -38,7 +38,7 @@ export default async function lastgame(channel: string, tags: ChatUserstate, com
   for (let i = 0; i < playersFromLastGame.length; i += 1) {
     heroIds.add(playersFromLastGame[i].old.hero_id).add(playersFromLastGame[i].current.hero_id);
   }
-  const heroesQuery = await db.collection('heroes').find({ id: { $in: Array.from(heroIds) } }).toArray();
-  if (playersFromLastGame.length) return playersFromLastGame.map((player) => `${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === player.current.hero_id), game.lobby_type, player.currentIndex)} played as ${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === player.old.hero_id), game.lobby_type, player.oldIndex)}`).join(', ');
+  const heroesQuery = await db.collection<HeroesQuery>('heroes').find({ id: { $in: [...heroIds.values()] as number[] } }).toArray();
+  if (playersFromLastGame.length) return playersFromLastGame.map((player) => `${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === player.current.hero_id), game, player.currentIndex)} played as ${Dota.getHeroName(channelQuery, heroesQuery.filter((hero) => hero.id === player.old.hero_id), game, player.oldIndex)}`).join(', ');
   return 'Not playing with anyone from last game';
 }

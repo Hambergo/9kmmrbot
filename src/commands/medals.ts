@@ -2,7 +2,7 @@ import { Long } from 'mongodb';
 import { ChatUserstate } from 'tmi.js';
 import CustomError from '../customError';
 import Dota from '../dota';
-import Mongo from '../mongo';
+import Mongo, { ChannelsQuery, HeroesQuery, MedalsQuery } from '../mongo';
 import Twitch from '../twitch';
 
 const mongo = Mongo.getInstance();
@@ -11,7 +11,7 @@ const twitch = Twitch.getInstance();
 
 export default async function medal(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
   const db = await mongo.db;
-  const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
+  const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['room-id']) });
   if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
   let lobbyId: Long;
   try {
@@ -29,18 +29,18 @@ export default async function medal(channel: string, tags: ChatUserstate, comman
     }
     return best;
   }, { rank_tier: -10, leaderboard_rank: 0 });
-  const medalQuery = await db.collection('medals').findOne({ rank_tier: bestCard.rank_tier });
+  const medalQuery = await db.collection<MedalsQuery>('medals').findOne({ rank_tier: bestCard.rank_tier });
   if (bestCard.leaderboard_rank) return `#${bestCard.leaderboard_rank}`;
   if (medalQuery) return medalQuery.name;
   return 'Unknown';
 }
 export async function gameMedals(channel: string, tags: ChatUserstate, commandName: string, debug: boolean = false, ...args: string[]): Promise<string> {
   const db = await mongo.db;
-  const channelQuery = await db.collection('channels').findOne({ id: Number(tags['room-id']) });
+  const channelQuery = await db.collection<ChannelsQuery>('channels').findOne({ id: Number(tags['room-id']) });
   if (!channelQuery?.accounts?.length) throw new CustomError('No accounts connected');
   const game = await Dota.findGame(channelQuery, true);
   const cards = await dota.getCards(game.players.map((player: { account_id: number; }) => player.account_id), game.lobby_id);
-  const medalQuery = await db.collection('medals').find({ rank_tier: { $in: cards.map((card) => card.rank_tier) } }).toArray();
+  const medalQuery = await db.collection<MedalsQuery>('medals').find({ rank_tier: { $in: cards.map((card) => card.rank_tier) } }).toArray();
   const medals = [];
   for (let i = 0; i < cards.length; i += 1) {
     const currentMedal = medalQuery.find((temporaryMedal) => temporaryMedal.rank_tier === cards[i].rank_tier);
@@ -50,7 +50,7 @@ export async function gameMedals(channel: string, tags: ChatUserstate, commandNa
       if (cards[i].leaderboard_rank > 0) medals[i] = `#${cards[i].leaderboard_rank}`;
     }
   }
-  const heroesQuery = await db.collection('heroes').find({
+  const heroesQuery = await db.collection<HeroesQuery>('heroes').find({
     id: {
       $in: game.players.map((player: { hero_id: number; }) => player.hero_id),
     },
@@ -61,13 +61,13 @@ export async function gameMedals(channel: string, tags: ChatUserstate, commandNa
     const heroNames = heroesQuery.filter((th) => {
       if (th.id !== game.players[i].hero_id) return false;
       for (let j = 0; j < th.emotesets?.length; j += 1) {
-        if (!emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id === th.emotes[j])) {
+        if (!emotesets[th.emotesets[j]]?.some((emote: { id: number; }) => emote.id === (th.emotes as number[])[j])) {
           return false;
         }
       }
       return true;
     });
-    const heroName = Dota.getHeroName(channelQuery, heroNames, game.lobby_type, i);
+    const heroName = Dota.getHeroName(channelQuery, heroNames, game, i);
     result.push({ heroName, medal: medals[i] });
   }
   return result.map((m) => `${m.heroName}: ${m.medal}`).join(', ');
