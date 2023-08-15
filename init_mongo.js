@@ -53,7 +53,7 @@ const heroes = [{ localized_name: 'Not Picked', id: 0 }, { localized_name: 'Anti
 { localized_name: 'Weaver', id: 63 }, { localized_name: 'Jakiro', id: 64 }, { localized_name: 'Batrider', id: 65 }, { localized_name: 'Chen', id: 66 },
 { localized_name: 'Spectre', id: 67 }, { localized_name: 'Ancient Apparition', id: 68 }, { localized_name: 'Doom', id: 69 }, { localized_name: 'Ursa', id: 70 },
 { localized_name: 'Spirit Breaker', id: 71 }, { localized_name: 'Gyrocopter', id: 72 }, { localized_name: 'Alchemist', id: 73 }, { localized_name: 'Invoker', id: 74 },
-{ localized_name: 'Silencer', id: 75 }, { localized_name: 'Outworld Devourer', id: 76 }, { localized_name: 'Lycan', id: 77 }, { localized_name: 'Brewmaster', id: 78 },
+{ localized_name: 'Silencer', id: 75 }, { localized_name: 'Outworld Destroyer', id: 76 }, { localized_name: 'Lycan', id: 77 }, { localized_name: 'Brewmaster', id: 78 },
 { localized_name: 'Shadow Demon', id: 79 }, { localized_name: 'Lone Druid', id: 80 }, { localized_name: 'Chaos Knight', id: 81 }, { localized_name: 'Meepo', id: 82 },
 { localized_name: 'Treant Protector', id: 83 }, { localized_name: 'Ogre Magi', id: 84 }, { localized_name: 'Undying', id: 85 }, { localized_name: 'Rubick', id: 86 },
 { localized_name: 'Disruptor', id: 87 }, { localized_name: 'Nyx Assassin', id: 88 }, { localized_name: 'Naga Siren', id: 89 },
@@ -64,7 +64,8 @@ const heroes = [{ localized_name: 'Not Picked', id: 0 }, { localized_name: 'Anti
 { localized_name: 'Ember Spirit', id: 106 }, { localized_name: 'Earth Spirit', id: 107 }, { localized_name: 'Underlord', id: 108 }, { localized_name: 'Terrorblade', id: 109 },
 { localized_name: 'Phoenix', id: 110 }, { localized_name: 'Oracle', id: 111 }, { localized_name: 'Winter Wyvern', id: 112 }, { localized_name: 'Arc Warden', id: 113 },
 { localized_name: 'Monkey King', id: 114 }, { localized_name: 'Dark Willow', id: 119 }, { localized_name: 'Pangolier', id: 120 }, { localized_name: 'Grimstroke', id: 121 },
-{ localized_name: 'Hoodwink', id: 123 }, { localized_name: 'Mars', id: 129 }, { localized_name: 'Dawnbreaker', id: 135 }, { localized_name: 'Marci', id: 136 }];
+{ localized_name: 'Hoodwink', id: 123 }, { localized_name: 'Void Spirit', id: 126 }, { localized_name: 'Snapfire', id: 128 }, { localized_name: 'Mars', id: 129 },
+{ localized_name: 'Dawnbreaker', id: 135 }, { localized_name: 'Marci', id: 136 }, { localized_name: 'Primal Beast', id: 137 }, { localized_name: 'Muerta', id: 138 }];
 db.heroes.createIndex({ id: 1 });
 db.heroes.createIndex({ custom: 1, localized_name: 1 });
 db.heroes.insertMany(heroes);
