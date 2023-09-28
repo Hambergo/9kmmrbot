@@ -162,7 +162,7 @@ export default class Dota {
         }))
         // .filter((match: { players: { hero_id: number; }[]; }) => !match.players.some((player: { hero_id: number; }) => player.hero_id === 0))
         .filter((match: { match_id: Long; }, index: number, self: { match_id: Long; }[]) => index === self.findIndex((tempMatch: { match_id: Long; }) => tempMatch.match_id.equals(match.match_id)));
-      db.collection<GamesQuery>('games').insertMany(games);
+      if (games.length) db.collection<GamesQuery>('games').insertMany(games);
       const gamesHistoryQuery = (await db.collection<GameHistoryQuery>('gameHistory').find({ match_id: { $in: games.map((game: { match_id: Long; }) => game.match_id) } }, { projection: { match_id: 1, players: 1 } }).toArray())
         .map((match) => {
           if (typeof match.match_id === 'number') {
