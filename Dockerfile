@@ -1,7 +1,8 @@
 FROM node:lts-alpine@sha256:19eaf41f3b8c2ac2f609ac8103f9246a6a6d46716cdbe49103fdb116e55ff0cc as base
-RUN apk add --no-cache subversion git openssh && npm i -g npm
+RUN apk add --no-cache subversion=1.14.2-r4 git=2.38.5-r0 openssh=9.1_p1-r4 yq=4.30.4-r4
 WORKDIR /usr/src/app
 COPY package*.json ./
+RUN yq '{"dependencies":.dependencies,"devDependencies":.devDependencies,"scripts":.scripts}' -i package.json -o json && yq -i package-lock.json -o json
 FROM base as builder
 RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 COPY src .eslintrc.json src/
