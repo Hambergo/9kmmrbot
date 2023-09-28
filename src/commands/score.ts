@@ -81,7 +81,6 @@ export default async function score(channel: string, tags: ChatUserstate, comman
   streamStart = new Date(streamStart.valueOf() - 600000);
 
   const gamesQueryPromise = db.collection<GameHistoryQuery>('gameHistory').find({
-    // match_id: { $ne: game.match_id },
     'players.account_id': { $in: channelQuery.accounts },
     'players.hero_id': { $ne: 0 },
     lobby_type: { $in: [0, 7] },
@@ -103,11 +102,7 @@ export default async function score(channel: string, tags: ChatUserstate, comman
       resultsArr.push(Dota.api('IDOTA2Match_570/GetMatchDetails/v1', { match_id: filteredGames[i].match_id.toString() }).catch(() => ({
         result: filteredGames[i],
       })).then((matchResult) => {
-        // console.log(JSON.stringify(matchResult));
         if (matchResult?.result?.players) {
-          // console.log('Before sort', matchResult.result.players.map((player: { account_id: any; player_slot: any; team_number: any; team_slot: any; hero_id: any; }) => ({
-          //   account_id: player.account_id, player_slot: player.player_slot, team_number: player.team_number, team_slot: player.team_slot, hero_id: player.hero_id,
-          // })));
           matchResult.result.players.sort((p1: {
             hero_id: any;
             account_id: any; player_slot: number;
@@ -115,11 +110,7 @@ export default async function score(channel: string, tags: ChatUserstate, comman
             account_id: any;
             hero_id: any; player_slot: number;
           }) => p1.player_slot - p2.player_slot);
-          // console.log('After sort', matchResult.result.players.map((player: { account_id: any; player_slot: any; team_number: any; team_slot: any; hero_id: any; }) => ({
-          //   account_id: player.account_id, player_slot: player.player_slot, team_number: player.team_number, team_slot: player.team_slot, hero_id: player.hero_id,
-          // })));
           for (let j = 0; j < matchResult.result.players.length; j += 1) {
-            // console.log(`Replacing player[${j}] account_id from ${JSON.stringify(matchResult.result.players[j])} to ${JSON.stringify(filteredGames[i].players.find((player) => player.hero_id === matchResult.result.players[j].hero_id))}`);
             // eslint-disable-next-line no-param-reassign
             matchResult.result.players[j].account_id = filteredGames[i].players.find((player) => player.hero_id === matchResult.result.players[j].hero_id)?.account_id;
           }

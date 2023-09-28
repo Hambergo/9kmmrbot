@@ -89,7 +89,6 @@ export default class Twitch {
       if (self) return;
       let response: string = '';
       try {
-        // console.time(`${tags.id}.${channel}.${message}`);
         response = await this.commands.runCommand(channel, tags, message);
       } catch (err: any) {
         if (err.name === 'CustomError') response = err.message;
@@ -102,7 +101,6 @@ export default class Twitch {
             this.say(channel, response).catch((err) => { });
           }
           console.log(`<${channel.substring(1)}> ${response}`);
-          // console.timeEnd(`${tags.id}.${channel}.${message}`);
           const db = await mongo.db;
           db.collection<ChannelsQuery>('channels').updateOne({ id: Number(tags['room-id']) }, { $inc: { count: 1 } });
         }
@@ -139,7 +137,6 @@ export default class Twitch {
 
   public static api(path: string, qs?: querystring.ParsedUrlQueryInput): Promise<any> {
     const now = Date.now();
-    // console.time(`twitchapi.${now}.${path}?${querystring.stringify(qs)}`);
     return new Promise((resolve, reject) => {
       const req = get('https://api.twitch.tv', {
         path: `/helix/${path}?${querystring.stringify(qs)}`,
@@ -153,7 +150,6 @@ export default class Twitch {
           data += chunk;
         });
         result.on('end', () => {
-          // console.timeEnd(`twitchapi.${now}.${path}?${querystring.stringify(qs)}`);
           try {
             resolve(JSON.parse(data));
           } catch (err) {

@@ -160,7 +160,6 @@ export default class Dota {
           weekend_tourney_skill_level: match.weekend_tourney_skill_level,
           createdAt: time,
         }))
-        // .filter((match: { players: { hero_id: number; }[]; }) => !match.players.some((player: { hero_id: number; }) => player.hero_id === 0))
         .filter((match: { match_id: Long; }, index: number, self: { match_id: Long; }[]) => index === self.findIndex((tempMatch: { match_id: Long; }) => tempMatch.match_id.equals(match.match_id)));
       if (games.length) db.collection<GamesQuery>('games').insertMany(games);
       const gamesHistoryQuery = (await db.collection<GameHistoryQuery>('gameHistory').find({ match_id: { $in: games.map((game: { match_id: Long; }) => game.match_id) } }, { projection: { match_id: 1, players: 1 } }).toArray())
@@ -191,21 +190,6 @@ export default class Dota {
             if (rp.watching_server) {
               rp.watching_server = Long.fromString(new ID(rp.watching_server).getSteamID64());
             }
-            // let party = '';
-            // const partyKeys = Object.keys(rp).filter((key) => key.startsWith('party')).sort();
-            // partyKeys.forEach((key) => {
-            //   party += rp[key];
-            //   delete rp[key];
-            // });
-            // if (rp.BattleCup) {
-            //   rp.BattleCup = generateObject(rp.BattleCup);
-            // }
-            // if (rp.lobby) {
-            //   rp.lobby = generateObject(rp.lobby);
-            // }
-            // if (party) {
-            //   rp.party = generateObject(party);
-            // }
             if (rp.WatchableGameID === '0') {
               delete rp.WatchableGameID;
             } else if (rp.WatchableGameID) rp.WatchableGameID = Long.fromString(rp.WatchableGameID);
@@ -411,12 +395,6 @@ export default class Dota {
         }))
         .then((rts) => {
           if (rts.match) {
-            // console.log(
-            //   rts.match?.server_steam_id,
-            //   rts.teams?.find((team: any) => team.team_number === 2).players.map((player: any) => `${player.accountid}:${player.heroid}`),
-            //   rts.teams?.find((team: any) => team.team_number === 3).players.map((player: any) => `${player.accountid}:${player.heroid}`),
-            //   rts.match === undefined ? rts : true,
-            // );
             // eslint-disable-next-line no-param-reassign
             rts.match.server_steam_id = new Long(rts.match.server_steam_id);
             // eslint-disable-next-line no-param-reassign
@@ -431,11 +409,6 @@ export default class Dota {
           return rts;
         });
     }
-    // console.log(
-    //   rtsQuery.server_steam_id,
-    //   rtsQuery.teams.find((team: any) => team.team_number === 2)?.players.map((player: any) => `${player.accountid}:${player.heroid}`),
-    //   rtsQuery.teams.find((team: any) => team.team_number === 3)?.players.map((player: any) => `${player.accountid}:${player.heroid}`),
-    // );
     return rtsQuery;
   }
 
@@ -531,7 +504,6 @@ export default class Dota {
     // eslint-disable-next-line no-param-reassign
     qs.key = process.env.STEAM_WEBAPI_KEY;
     const now = Date.now();
-    // console.time(`dotaapi.${now}.${path}?${querystring.stringify(qs)}`);
     return new Promise((resolve, reject) => {
       const req = get(`http://api.steampowered.com/${path}?${querystring.stringify(qs)}`, (result) => {
         let data = '';
@@ -539,7 +511,6 @@ export default class Dota {
           data += chunk;
         });
         result.on('end', () => {
-          // console.timeEnd(`dotaapi.${now}.${path}?${querystring.stringify(qs)}`);
           try {
             resolve(JSON.parse(data));
           } catch (err) {
