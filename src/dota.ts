@@ -317,7 +317,7 @@ export default class Dota {
           steam_id: {
             $in: channelQuery.accounts.map((account) => {
               const id = this.getInstance().dota2.ToSteamID(account);
-              return id;
+              return Long.fromString(id.toString());
             }),
           },
         },
